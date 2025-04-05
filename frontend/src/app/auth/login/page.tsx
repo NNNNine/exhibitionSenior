@@ -36,7 +36,7 @@ export default function LoginPage() {
     try {
       await login(values.email, values.password);
       message.success('Login successful!');
-      router.push('/dashboard');
+      // Redirection is handled in the login function based on user role
     } catch (error) {
       console.error('Login error:', error);
       message.error(

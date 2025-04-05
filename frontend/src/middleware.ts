@@ -3,9 +3,9 @@ import type { NextRequest } from 'next/server';
 
 // Define paths that require authentication
 const authenticatedPaths = [
-  '/artist',
-  '/curator',
-  '/admin',
+  '/dashboard/artist',
+  '/dashboard/curator',
+  '/dashboard/admin',
   '/profile/edit',
   '/artworks/upload',
   '/artworks/edit',
@@ -15,9 +15,9 @@ const authenticatedPaths = [
 
 // Define role-specific paths
 const roleSpecificPaths: Record<string, string[]> = {
-  artist: ['/artist', '/artworks/upload', '/artworks/edit'],
-  curator: ['/curator', '/exhibitions/create', '/exhibitions/edit'],
-  admin: ['/admin'],
+  artist: ['/dashboard/artist', '/artworks/upload', '/artworks/edit'],
+  curator: ['/dashboard/curator', '/exhibitions/create', '/exhibitions/edit'],
+  admin: ['/dashboard/admin'],
 };
 
 export async function middleware(request: NextRequest) {
@@ -33,11 +33,16 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
   
-  // Check for authentication token
-  const token = request.cookies.get('token')?.value;
+  // First check cookies
+  const tokenFromCookie = request.cookies.get('token')?.value;
+  const tokenFromLocalStorage = request.headers.get('x-localstorage-token');
   
-  if (!token) {
-    // Redirect to login with the current URL as the redirect target
+  console.log(`[Middleware] Path: ${path}, Token in cookies:`, tokenFromCookie ? 'Yes' : 'No');
+  console.log(`[Middleware] Token in localStorage:`, tokenFromLocalStorage ? 'Yes' : 'No');
+  
+  // If no token in cookies, middleware has to redirect to login
+  if (!tokenFromCookie && !tokenFromLocalStorage) {
+    console.log(`[Middleware] No token found, redirecting to login`);
     const redirectUrl = new URL('/auth/login', request.url);
     redirectUrl.searchParams.set('redirectTo', encodeURIComponent(request.url));
     return NextResponse.redirect(redirectUrl);

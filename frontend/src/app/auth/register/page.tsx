@@ -32,7 +32,7 @@ export default function Register() {
     try {
       await register(username, email, password, role);
       message.success('Registration successful!');
-      router.push('/dashboard');
+      // Redirection is handled in the register function based on user role
     } catch (error) {
       console.error('Registration error:', error);
       message.error(error instanceof Error

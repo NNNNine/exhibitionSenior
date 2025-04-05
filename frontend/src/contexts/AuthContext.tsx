@@ -33,20 +33,33 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   useEffect(() => {
     const checkAuth = async () => {
       try {
+        // Debug token state
+        console.log('Auth Check - localStorage token:', localStorage.getItem('token'));
+        console.log('Auth Check - cookies:', document.cookie);
+        
         const token = localStorage.getItem('token');
         if (!token) {
+          console.log('Auth Check - No token found in localStorage');
           setInitialLoading(false);
           setLoading(false);
           return;
         }
 
+        console.log('Auth Check - Attempting to get current user with token');
         const userData = await authApi.getCurrentUser();
+        console.log('Auth Check - User data retrieved:', userData ? 'success' : 'failed');
         setUser(userData);
       } catch (err) {
         console.error('Auth check error:', err);
-        // Clear invalid token
+        // Clear invalid tokens from localStorage
         localStorage.removeItem('token');
         localStorage.removeItem('refreshToken');
+        
+        // Clear tokens from cookies
+        document.cookie = 'token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax';
+        document.cookie = 'refreshToken=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax';
+        
+        console.log('Auth Check - Tokens cleared due to error');
       } finally {
         setInitialLoading(false);
         setLoading(false);
@@ -64,9 +77,19 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     try {
       const { user, token, refreshToken } = await authApi.login(email, password);
       
-      // Store tokens
+      // Store tokens in localStorage for client-side access
       localStorage.setItem('token', token);
       localStorage.setItem('refreshToken', refreshToken);
+      
+      // Set token in cookies for SSR/middleware authentication
+      // Setting cookies without HttpOnly flag so they can be read from both client and server
+      // Using SameSite=Lax which works better for cross-origin and redirect scenarios
+      document.cookie = `token=${token}; path=/; max-age=2592000; SameSite=Lax`;
+      document.cookie = `refreshToken=${refreshToken}; path=/; max-age=2592000; SameSite=Lax`;
+      
+      console.log('Login - Tokens set in localStorage and cookies');
+      console.log('Login - localStorage token:', token ? `${token.substr(0, 10)}...` : 'none');
+      console.log('Login - cookies after setting:', document.cookie);
       
       setUser(user);
       
@@ -93,9 +116,19 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     try {
       const { user, token, refreshToken } = await authApi.register(username, email, password, role);
       
-      // Store tokens
+      // Store tokens in localStorage for client-side access
       localStorage.setItem('token', token);
       localStorage.setItem('refreshToken', refreshToken);
+      
+      // Set token in cookies for SSR/middleware authentication
+      // Setting cookies without HttpOnly flag so they can be read from both client and server
+      // Using SameSite=Lax which works better for cross-origin and redirect scenarios
+      document.cookie = `token=${token}; path=/; max-age=2592000; SameSite=Lax`;
+      document.cookie = `refreshToken=${refreshToken}; path=/; max-age=2592000; SameSite=Lax`;
+      
+      console.log('Login - Tokens set in localStorage and cookies');
+      console.log('Login - localStorage token:', token ? `${token.substr(0, 10)}...` : 'none');
+      console.log('Login - cookies after setting:', document.cookie);
       
       setUser(user);
       
@@ -111,9 +144,15 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   // Handle logout
   const logout = () => {
-    // Clear tokens
+    // Clear tokens from localStorage
     localStorage.removeItem('token');
     localStorage.removeItem('refreshToken');
+    
+    // Clear tokens from cookies
+    document.cookie = 'token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax';
+    document.cookie = 'refreshToken=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax';
+    
+    console.log('Logout - Tokens cleared from localStorage and cookies');
     
     // Reset user state
     setUser(null);

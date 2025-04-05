@@ -48,8 +48,15 @@ export const refreshToken = async (refreshToken: string): Promise<{ token: strin
  * Get current user information
  */
 export const getCurrentUser = async (): Promise<User> => {
-  const response = await api.get('/auth/me');
-  return response.data;
+  console.log('API - Getting current user with token from localStorage');
+  try {
+    const response = await api.get('/auth/me');
+    console.log('API - Current user fetch successful');
+    return response.data;
+  } catch (error) {
+    console.error('API - Current user fetch failed:', error);
+    throw error;
+  }
 };
 
 /**

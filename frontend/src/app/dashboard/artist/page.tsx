@@ -10,8 +10,6 @@ import { getArtworks } from '@/lib/api/index';
 import ArtworkGrid from '@/components/artwork/ArtworkGrid';
 import { Artwork } from '@/types/artwork.types';
 
-const { TabPane } = Tabs;
-
 const ArtistDashboard: React.FC = () => {
   const router = useRouter();
   const [artworks, setArtworks] = useState<Artwork[]>([]);
@@ -123,60 +121,73 @@ const ArtistDashboard: React.FC = () => {
         
         {/* Tabs for different artwork views */}
         <Card className="mt-6">
-          <Tabs defaultActiveKey="all">
-            <TabPane tab="All Artworks" key="all">
-              {loading ? (
-                <div className="flex justify-center py-10">
-                  <Spin size="large" />
-                </div>
-              ) : artworks.length > 0 ? (
-                <ArtworkGrid 
-                  artworks={artworks} 
-                  columns={3}
-                  renderExtraInfo={(artwork) => (
-                    <p className="text-xs text-gray-500 mt-1">
-                      {artwork.exhibitionItems && artwork.exhibitionItems.length > 0 
-                        ? `Featured in ${artwork.exhibitionItems.length} exhibition(s)` 
-                        : 'Not featured in any exhibitions'}
-                    </p>
-                  )}
-                />
-              ) : (
-                <Empty description="No artworks yet" />
-              )}
-            </TabPane>
-            
-            <TabPane tab="Pending Approval" key="pending">
-              {loading ? (
-                <div className="flex justify-center py-10">
-                  <Spin size="large" />
-                </div>
-              ) : pendingArtworks.length > 0 ? (
-                <ArtworkGrid 
-                  artworks={pendingArtworks} 
-                  columns={3}
-                />
-              ) : (
-                <Empty description="No artworks pending approval" />
-              )}
-            </TabPane>
-            
-            <TabPane tab="Featured in Exhibitions" key="exhibitions">
-              {loading ? (
-                <div className="flex justify-center py-10">
-                  <Spin size="large" />
-                </div>
-              ) : (
-                <ArtworkGrid 
-                  artworks={artworks.filter(art => 
-                    art.exhibitionItems && art.exhibitionItems.length > 0
-                  )} 
-                  columns={3}
-                  emptyText="None of your artworks are featured in exhibitions yet"
-                />
-              )}
-            </TabPane>
-          </Tabs>
+          <Tabs 
+            defaultActiveKey="all"
+            items={[
+              {
+                key: 'all',
+                label: 'All Artworks',
+                children: (
+                  loading ? (
+                    <div className="flex justify-center py-10">
+                      <Spin size="large" />
+                    </div>
+                  ) : artworks.length > 0 ? (
+                    <ArtworkGrid 
+                      artworks={artworks} 
+                      columns={3}
+                      renderExtraInfo={(artwork) => (
+                        <p className="text-xs text-gray-500 mt-1">
+                          {artwork.exhibitionItems && artwork.exhibitionItems.length > 0 
+                            ? `Featured in ${artwork.exhibitionItems.length} exhibition(s)` 
+                            : 'Not featured in any exhibitions'}
+                        </p>
+                      )}
+                    />
+                  ) : (
+                    <Empty description="No artworks yet" />
+                  )
+                )
+              },
+              {
+                key: 'pending',
+                label: 'Pending Approval',
+                children: (
+                  loading ? (
+                    <div className="flex justify-center py-10">
+                      <Spin size="large" />
+                    </div>
+                  ) : pendingArtworks.length > 0 ? (
+                    <ArtworkGrid 
+                      artworks={pendingArtworks} 
+                      columns={3}
+                    />
+                  ) : (
+                    <Empty description="No artworks pending approval" />
+                  )
+                )
+              },
+              {
+                key: 'exhibitions',
+                label: 'Featured in Exhibitions',
+                children: (
+                  loading ? (
+                    <div className="flex justify-center py-10">
+                      <Spin size="large" />
+                    </div>
+                  ) : (
+                    <ArtworkGrid 
+                      artworks={artworks.filter(art => 
+                        art.exhibitionItems && art.exhibitionItems.length > 0
+                      )} 
+                      columns={3}
+                      emptyText="None of your artworks are featured in exhibitions yet"
+                    />
+                  )
+                )
+              }
+            ]}
+          />
         </Card>
       </div>
     </ProtectedRoute>

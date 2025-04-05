@@ -12,8 +12,6 @@ import { Exhibition } from '@/types/exhibition.types';
 import { Artwork } from '@/types/artwork.types';
 import { formatDate } from '@/utils/format';
 
-const { TabPane } = Tabs;
-
 const CuratorDashboard: React.FC = () => {
   const router = useRouter();
   const [exhibitions, setExhibitions] = useState<Exhibition[]>([]);
@@ -229,52 +227,65 @@ const CuratorDashboard: React.FC = () => {
         
         {/* Tabs for different views */}
         <Card className="mt-6">
-          <Tabs defaultActiveKey="exhibitions">
-            <TabPane tab="My Exhibitions" key="exhibitions">
-              {loading ? (
-                <div className="flex justify-center py-10">
-                  <Spin size="large" />
-                </div>
-              ) : (
-                <ExhibitionGrid 
-                  exhibitions={exhibitions} 
-                  columns={3}
-                  showCurator={false}
-                  emptyText="You haven't created any exhibitions yet"
-                />
-              )}
-            </TabPane>
-            
-            <TabPane tab="Pending Approvals" key="pending">
-              {loading ? (
-                <div className="flex justify-center py-10">
-                  <Spin size="large" />
-                </div>
-              ) : (
-                <Table 
-                  dataSource={pendingArtworks}
-                  columns={pendingColumns}
-                  rowKey="id"
-                  pagination={false}
-                />
-              )}
-            </TabPane>
-            
-            <TabPane tab="Active Exhibitions" key="active">
-              {loading ? (
-                <div className="flex justify-center py-10">
-                  <Spin size="large" />
-                </div>
-              ) : (
-                <ExhibitionGrid 
-                  exhibitions={exhibitions.filter(ex => ex.isActive)} 
-                  columns={3}
-                  showCurator={false}
-                  emptyText="You don't have any active exhibitions"
-                />
-              )}
-            </TabPane>
-          </Tabs>
+          <Tabs 
+            defaultActiveKey="exhibitions"
+            items={[
+              {
+                key: 'exhibitions',
+                label: 'My Exhibitions',
+                children: (
+                  loading ? (
+                    <div className="flex justify-center py-10">
+                      <Spin size="large" />
+                    </div>
+                  ) : (
+                    <ExhibitionGrid 
+                      exhibitions={exhibitions} 
+                      columns={3}
+                      showCurator={false}
+                      emptyText="You haven't created any exhibitions yet"
+                    />
+                  )
+                )
+              },
+              {
+                key: 'pending',
+                label: 'Pending Approvals',
+                children: (
+                  loading ? (
+                    <div className="flex justify-center py-10">
+                      <Spin size="large" />
+                    </div>
+                  ) : (
+                    <Table 
+                      dataSource={pendingArtworks}
+                      columns={pendingColumns}
+                      rowKey="id"
+                      pagination={false}
+                    />
+                  )
+                )
+              },
+              {
+                key: 'active',
+                label: 'Active Exhibitions',
+                children: (
+                  loading ? (
+                    <div className="flex justify-center py-10">
+                      <Spin size="large" />
+                    </div>
+                  ) : (
+                    <ExhibitionGrid 
+                      exhibitions={exhibitions.filter(ex => ex.isActive)} 
+                      columns={3}
+                      showCurator={false}
+                      emptyText="You don't have any active exhibitions"
+                    />
+                  )
+                )
+              }
+            ]}
+          />
         </Card>
       </div>
     </ProtectedRoute>

@@ -35,9 +35,13 @@ const useAuth = (): UseAuthReturn => {
         setUser(userData);
       } catch (err) {
         console.error('Auth check error:', err);
-        // Clear invalid token
+        // Clear invalid tokens from localStorage
         localStorage.removeItem('token');
         localStorage.removeItem('refreshToken');
+        
+        // Clear tokens from cookies
+        document.cookie = 'token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Strict';
+        document.cookie = 'refreshToken=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Strict; HttpOnly';
       } finally {
         setLoading(false);
       }
@@ -54,9 +58,13 @@ const useAuth = (): UseAuthReturn => {
     try {
       const { user, token, refreshToken } = await authApi.login(email, password);
       
-      // Store tokens
+      // Store tokens in localStorage for client-side access
       localStorage.setItem('token', token);
       localStorage.setItem('refreshToken', refreshToken);
+      
+      // Also set token in cookies for SSR/middleware authentication
+      document.cookie = `token=${token}; path=/; max-age=2592000; SameSite=Strict`;
+      document.cookie = `refreshToken=${refreshToken}; path=/; max-age=2592000; SameSite=Strict; HttpOnly`;
       
       setUser(user);
       
@@ -78,9 +86,13 @@ const useAuth = (): UseAuthReturn => {
     try {
       const { user, token, refreshToken } = await authApi.register(username, email, password, role);
       
-      // Store tokens
+      // Store tokens in localStorage for client-side access
       localStorage.setItem('token', token);
       localStorage.setItem('refreshToken', refreshToken);
+      
+      // Also set token in cookies for SSR/middleware authentication
+      document.cookie = `token=${token}; path=/; max-age=2592000; SameSite=Strict`;
+      document.cookie = `refreshToken=${refreshToken}; path=/; max-age=2592000; SameSite=Strict; HttpOnly`;
       
       setUser(user);
       
@@ -96,9 +108,13 @@ const useAuth = (): UseAuthReturn => {
 
   // Handle logout
   const logout = useCallback(() => {
-    // Clear tokens
+    // Clear tokens from localStorage
     localStorage.removeItem('token');
     localStorage.removeItem('refreshToken');
+    
+    // Clear tokens from cookies
+    document.cookie = 'token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Strict';
+    document.cookie = 'refreshToken=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Strict; HttpOnly';
     
     // Reset user state
     setUser(null);
@@ -119,13 +135,13 @@ const useAuth = (): UseAuthReturn => {
   const redirectUserBasedOnRole = (role: UserRole) => {
     switch (role) {
       case UserRole.ARTIST:
-        router.push('/artist');
+        router.push('/dashboard/artist');
         break;
       case UserRole.CURATOR:
-        router.push('/curator');
+        router.push('/dashboard/curator');
         break;
       case UserRole.ADMIN:
-        router.push('/admin');
+        router.push('/dashboard/admin');
         break;
       default:
         router.push('/');

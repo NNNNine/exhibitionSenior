@@ -11,7 +11,6 @@ import { formatDate } from '@/utils/format';
 import { Artwork } from '@/types/artwork.types';
 import { Exhibition } from '@/types/exhibition.types';
 
-const { TabPane } = Tabs;
 const { Option } = Select;
 
 const AdminDashboard: React.FC = () => {
@@ -482,119 +481,137 @@ const AdminDashboard: React.FC = () => {
         </div>
         
         {/* Tabs for different management functions */}
-        <Tabs defaultActiveKey="users">
-          <TabPane tab="User Management" key="users">
-            <Card>
-              {loading ? (
-                <div className="flex justify-center py-10">
-                  <Spin size="large" />
-                </div>
-              ) : (
-                <Table 
-                  dataSource={users}
-                  columns={userColumns}
-                  rowKey="id"
-                  pagination={{ pageSize: 10 }}
-                />
-              )}
-            </Card>
-          </TabPane>
-          
-          <TabPane tab="Artwork Management" key="artworks">
-            <Card>
-              {loading ? (
-                <div className="flex justify-center py-10">
-                  <Spin size="large" />
-                </div>
-              ) : (
-                <Table 
-                  dataSource={artworks}
-                  columns={artworkColumns}
-                  rowKey="id"
-                  pagination={{ pageSize: 10 }}
-                />
-              )}
-            </Card>
-          </TabPane>
-          
-          <TabPane tab="Exhibition Management" key="exhibitions">
-            <Card>
-              {loading ? (
-                <div className="flex justify-center py-10">
-                  <Spin size="large" />
-                </div>
-              ) : (
-                <Table 
-                  dataSource={exhibitions}
-                  columns={exhibitionColumns}
-                  rowKey="id"
-                  pagination={{ pageSize: 10 }}
-                />
-              )}
-            </Card>
-          </TabPane>
-          
-          <TabPane tab="System Settings" key="settings">
-            <Card title="System Configuration">
-              <Form layout="vertical">
-                <Form.Item label="Exhibition Default Duration (days)" name="exhibitionDuration">
-                  <Input type="number" defaultValue={30} />
-                </Form.Item>
-                
-                <Form.Item label="Maximum Upload Size (MB)" name="maxUploadSize">
-                  <Input type="number" defaultValue={10} />
-                </Form.Item>
-                
-                <Form.Item label="Allowed File Types" name="allowedFileTypes">
-                  <Select mode="multiple" defaultValue={['jpg', 'png', 'tiff']}>
-                    <Option value="jpg">JPG</Option>
-                    <Option value="png">PNG</Option>
-                    <Option value="tiff">TIFF</Option>
-                    <Option value="gif">GIF</Option>
-                    <Option value="webp">WEBP</Option>
-                  </Select>
-                </Form.Item>
-                
-                <Form.Item label="Enable User Registration" name="enableRegistration" valuePropName="checked">
-                  <Select defaultValue="all">
-                    <Option value="all">All Roles</Option>
-                    <Option value="visitors">Visitors Only</Option>
-                    <Option value="artists">Artists and Visitors</Option>
-                    <Option value="none">Disabled (Admin Only)</Option>
-                  </Select>
-                </Form.Item>
-                
-                <Form.Item label="Maintenance Mode" name="maintenanceMode" valuePropName="checked">
-                  <Select defaultValue="off">
-                    <Option value="off">Off</Option>
-                    <Option value="scheduled">Scheduled</Option>
-                    <Option value="on">On (Admin Access Only)</Option>
-                  </Select>
-                </Form.Item>
-                
-                <Button type="primary">Save Settings</Button>
-              </Form>
-            </Card>
-            
-            <Card title="Advanced Settings" className="mt-6">
-              <Button className="mr-4" onClick={() => message.info('Database backup would start here')}>
-                Database Backup
-              </Button>
-              <Button className="mr-4" onClick={() => message.info('System logs would be shown here')}>
-                View System Logs
-              </Button>
-              <Button danger onClick={() => {
-                Modal.confirm({
-                  title: 'Clear All Cache',
-                  content: 'Are you sure you want to clear all system cache? This may temporarily slow down the system.',
-                  onOk: () => message.success('Cache cleared successfully')
-                });
-              }}>
-                Clear Cache
-              </Button>
-            </Card>
-          </TabPane>
-        </Tabs>
+        <Tabs 
+          defaultActiveKey="users"
+          items={[
+            {
+              key: 'users',
+              label: 'User Management',
+              children: (
+                <Card>
+                  {loading ? (
+                    <div className="flex justify-center py-10">
+                      <Spin size="large" />
+                    </div>
+                  ) : (
+                    <Table 
+                      dataSource={users}
+                      columns={userColumns}
+                      rowKey="id"
+                      pagination={{ pageSize: 10 }}
+                    />
+                  )}
+                </Card>
+              )
+            },
+            {
+              key: 'artworks',
+              label: 'Artwork Management',
+              children: (
+                <Card>
+                  {loading ? (
+                    <div className="flex justify-center py-10">
+                      <Spin size="large" />
+                    </div>
+                  ) : (
+                    <Table 
+                      dataSource={artworks}
+                      columns={artworkColumns}
+                      rowKey="id"
+                      pagination={{ pageSize: 10 }}
+                    />
+                  )}
+                </Card>
+              )
+            },
+            {
+              key: 'exhibitions',
+              label: 'Exhibition Management',
+              children: (
+                <Card>
+                  {loading ? (
+                    <div className="flex justify-center py-10">
+                      <Spin size="large" />
+                    </div>
+                  ) : (
+                    <Table 
+                      dataSource={exhibitions}
+                      columns={exhibitionColumns}
+                      rowKey="id"
+                      pagination={{ pageSize: 10 }}
+                    />
+                  )}
+                </Card>
+              )
+            },
+            {
+              key: 'settings',
+              label: 'System Settings',
+              children: (
+                <>
+                  <Card title="System Configuration">
+                    <Form layout="vertical">
+                      <Form.Item label="Exhibition Default Duration (days)" name="exhibitionDuration">
+                        <Input type="number" defaultValue={30} />
+                      </Form.Item>
+                      
+                      <Form.Item label="Maximum Upload Size (MB)" name="maxUploadSize">
+                        <Input type="number" defaultValue={10} />
+                      </Form.Item>
+                      
+                      <Form.Item label="Allowed File Types" name="allowedFileTypes">
+                        <Select mode="multiple" defaultValue={['jpg', 'png', 'tiff']}>
+                          <Option value="jpg">JPG</Option>
+                          <Option value="png">PNG</Option>
+                          <Option value="tiff">TIFF</Option>
+                          <Option value="gif">GIF</Option>
+                          <Option value="webp">WEBP</Option>
+                        </Select>
+                      </Form.Item>
+                      
+                      <Form.Item label="Enable User Registration" name="enableRegistration" valuePropName="checked">
+                        <Select defaultValue="all">
+                          <Option value="all">All Roles</Option>
+                          <Option value="visitors">Visitors Only</Option>
+                          <Option value="artists">Artists and Visitors</Option>
+                          <Option value="none">Disabled (Admin Only)</Option>
+                        </Select>
+                      </Form.Item>
+                      
+                      <Form.Item label="Maintenance Mode" name="maintenanceMode" valuePropName="checked">
+                        <Select defaultValue="off">
+                          <Option value="off">Off</Option>
+                          <Option value="scheduled">Scheduled</Option>
+                          <Option value="on">On (Admin Access Only)</Option>
+                        </Select>
+                      </Form.Item>
+                      
+                      <Button type="primary">Save Settings</Button>
+                    </Form>
+                  </Card>
+                  
+                  <Card title="Advanced Settings" className="mt-6">
+                    <Button className="mr-4" onClick={() => message.info('Database backup would start here')}>
+                      Database Backup
+                    </Button>
+                    <Button className="mr-4" onClick={() => message.info('System logs would be shown here')}>
+                      View System Logs
+                    </Button>
+                    <Button danger onClick={() => {
+                      Modal.confirm({
+                        title: 'Clear All Cache',
+                        content: 'Are you sure you want to clear all system cache? This may temporarily slow down the system.',
+                        onOk: () => message.success('Cache cleared successfully')
+                      });
+                    }}>
+                      Clear Cache
+                    </Button>
+                  </Card>
+                </>
+              )
+            }
+          ]}
+        />
         
         {/* User Edit Modal */}
         <Modal

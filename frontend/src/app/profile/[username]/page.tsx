@@ -13,8 +13,6 @@ import ArtworkGrid from '@/components/artwork/ArtworkGrid';
 import ExhibitionGrid from '@/components/exhibition/ExhibitionGrid';
 import { formatDate } from '@/utils/format';
 
-const { TabPane } = Tabs;
-
 const UserProfilePage: React.FC = () => {
   const { username } = useParams<{ username: string }>();
   const router = useRouter();
@@ -200,72 +198,84 @@ const UserProfilePage: React.FC = () => {
         {/* Content Area */}
         <div className="lg:col-span-3">
           <Card>
-            <Tabs defaultActiveKey="1">
-              {/* About Tab */}
-              <TabPane tab="About" key="1">
-                <h2 className="text-xl font-bold mb-4">About {user.username}</h2>
-                <p>
-                  {/* Mock user bio - in a real app this would come from the user data */}
-                  {user.role === UserRole.ARTIST && (
+            <Tabs 
+              defaultActiveKey="1"
+              items={[
+                {
+                  key: '1',
+                  label: 'About',
+                  children: (
                     <>
-                      This artist has joined our platform to showcase their amazing artwork. 
-                      Explore their portfolio to discover their unique style and creativity.
+                      <h2 className="text-xl font-bold mb-4">About {user.username}</h2>
+                      <p>
+                        {/* Mock user bio - in a real app this would come from the user data */}
+                        {user.role === UserRole.ARTIST && (
+                          <>
+                            This artist has joined our platform to showcase their amazing artwork. 
+                            Explore their portfolio to discover their unique style and creativity.
+                          </>
+                        )}
+                        
+                        {user.role === UserRole.CURATOR && (
+                          <>
+                            As a curator on our platform, this user is passionate about organizing 
+                            and presenting art exhibitions. Check out their curated collections and exhibitions.
+                          </>
+                        )}
+                        
+                        {user.role === UserRole.VISITOR && (
+                          <>
+                            This user enjoys exploring art exhibitions and discovering new artists 
+                            on our platform. They're an art enthusiast looking for inspiration.
+                          </>
+                        )}
+                      </p>
                     </>
-                  )}
-                  
-                  {user.role === UserRole.CURATOR && (
+                  )
+                },
+                user.role === UserRole.ARTIST ? {
+                  key: '2',
+                  label: 'Artworks',
+                  children: (
                     <>
-                      As a curator on our platform, this user is passionate about organizing 
-                      and presenting art exhibitions. Check out their curated collections and exhibitions.
+                      <h2 className="text-xl font-bold mb-4">Artworks by {user.username}</h2>
+                      {artworks.length > 0 ? (
+                        <ArtworkGrid 
+                          artworks={artworks} 
+                          columns={3}
+                        />
+                      ) : (
+                        <div className="text-center py-8">
+                          <PictureOutlined style={{ fontSize: 48, color: '#d9d9d9' }} />
+                          <p className="mt-4 text-gray-500">This artist hasn't uploaded any artworks yet.</p>
+                        </div>
+                      )}
                     </>
-                  )}
-                  
-                  {user.role === UserRole.VISITOR && (
+                  )
+                } : null,
+                user.role === UserRole.CURATOR ? {
+                  key: '2',
+                  label: 'Exhibitions',
+                  children: (
                     <>
-                      This user enjoys exploring art exhibitions and discovering new artists 
-                      on our platform. They're an art enthusiast looking for inspiration.
+                      <h2 className="text-xl font-bold mb-4">Exhibitions by {user.username}</h2>
+                      {exhibitions.length > 0 ? (
+                        <ExhibitionGrid 
+                          exhibitions={exhibitions} 
+                          columns={2}
+                          showCurator={false}
+                        />
+                      ) : (
+                        <div className="text-center py-8">
+                          <EnvironmentOutlined style={{ fontSize: 48, color: '#d9d9d9' }} />
+                          <p className="mt-4 text-gray-500">This curator hasn't created any exhibitions yet.</p>
+                        </div>
+                      )}
                     </>
-                  )}
-                </p>
-              </TabPane>
-              
-              {/* Artworks Tab (for Artists) */}
-              {user.role === UserRole.ARTIST && (
-                <TabPane tab="Artworks" key="2">
-                  <h2 className="text-xl font-bold mb-4">Artworks by {user.username}</h2>
-                  {artworks.length > 0 ? (
-                    <ArtworkGrid 
-                      artworks={artworks} 
-                      columns={3}
-                    />
-                  ) : (
-                    <div className="text-center py-8">
-                      <PictureOutlined style={{ fontSize: 48, color: '#d9d9d9' }} />
-                      <p className="mt-4 text-gray-500">This artist hasn't uploaded any artworks yet.</p>
-                    </div>
-                  )}
-                </TabPane>
-              )}
-              
-              {/* Exhibitions Tab (for Curators) */}
-              {user.role === UserRole.CURATOR && (
-                <TabPane tab="Exhibitions" key="2">
-                  <h2 className="text-xl font-bold mb-4">Exhibitions by {user.username}</h2>
-                  {exhibitions.length > 0 ? (
-                    <ExhibitionGrid 
-                      exhibitions={exhibitions} 
-                      columns={2}
-                      showCurator={false}
-                    />
-                  ) : (
-                    <div className="text-center py-8">
-                      <EnvironmentOutlined style={{ fontSize: 48, color: '#d9d9d9' }} />
-                      <p className="mt-4 text-gray-500">This curator hasn't created any exhibitions yet.</p>
-                    </div>
-                  )}
-                </TabPane>
-              )}
-            </Tabs>
+                  )
+                } : null
+              ].filter(Boolean)}
+            />
           </Card>
         </div>
       </div>

@@ -7,6 +7,7 @@ const api = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
+  withCredentials: true, // Important: this enables sending cookies with cross-origin requests
 });
 
 // Track if we're currently refreshing token
@@ -31,8 +32,10 @@ const processQueue = (error: any = null, token: string | null = null) => {
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('token');
+    console.log('API Request - Token from localStorage:', token ? `${token.substr(0, 10)}...` : 'none');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
+      console.log('API Request - Authorization header set');
     }
     return config;
   },
@@ -68,6 +71,13 @@ api.interceptors.response.use(
             // No refresh token, force logout
             localStorage.removeItem('token');
             localStorage.removeItem('refreshToken');
+            
+            // Clear cookies for SSR/middleware
+            document.cookie = 'token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax';
+            document.cookie = 'refreshToken=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax';
+            
+            console.log('API Error - No refresh token, cleared tokens from localStorage and cookies');
+            
             window.location.href = '/auth/login?expired=true';
             return Promise.reject(formatError(error));
           }
@@ -76,9 +86,15 @@ api.interceptors.response.use(
           const response = await refreshTokenAPI(refreshTokenStr);
           const { token, refreshToken: newRefreshToken } = response;
           
-          // Update tokens in storage
+          // Update tokens in localStorage
           localStorage.setItem('token', token);
           localStorage.setItem('refreshToken', newRefreshToken);
+          
+          // Also update cookies for SSR/middleware
+          document.cookie = `token=${token}; path=/; max-age=2592000; SameSite=Lax`;
+          document.cookie = `refreshToken=${newRefreshToken}; path=/; max-age=2592000; SameSite=Lax`;
+          
+          console.log('Token Refresh - Tokens updated in localStorage and cookies');
           
           // Update Authorization header
           api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
@@ -100,6 +116,13 @@ api.interceptors.response.use(
           // Force logout
           localStorage.removeItem('token');
           localStorage.removeItem('refreshToken');
+          
+          // Clear cookies for SSR/middleware
+          document.cookie = 'token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax';
+          document.cookie = 'refreshToken=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax';
+          
+          console.log('API Error - Refresh failed, cleared tokens from localStorage and cookies');
+          
           window.location.href = '/auth/login?expired=true';
           
           return Promise.reject(formatError(refreshError));
