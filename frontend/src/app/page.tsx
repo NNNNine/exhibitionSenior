@@ -57,7 +57,7 @@ export default function Home() {
       <section className="relative h-[80vh] flex items-center bg-gradient-to-r from-blue-900 to-indigo-900 text-white">
         <div className="absolute inset-0 z-0 opacity-30">
           <Image
-            src="/hero-background.jpg" // Replace with your actual image path
+            src="/images/hero-background.jpg" // Replace with your actual image path
             alt="Exhibition Art"
             fill
             style={{ objectFit: 'cover' }}
