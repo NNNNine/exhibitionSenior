@@ -20,12 +20,6 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuthContext } from '@/contexts/AuthContext';
 
-// Metadata for the page
-export const metadata = {
-  title: 'Login - Exhibition Art Online',
-  description: 'Login to your Exhibition Art Online account'
-};
-
 interface LoginFormValues {
   email: string;
   password: string;
@@ -69,7 +63,7 @@ export default function LoginPage() {
           </h2>
           <p className="mt-2 text-center text-sm text-gray-600">
             Or{' '}
-            <Link href="/register" className="font-medium text-blue-600 hover:text-blue-500">
+            <Link href="/auth/register" className="font-medium text-blue-600 hover:text-blue-500">
               create a new account
             </Link>
           </p>

@@ -104,7 +104,7 @@ const useAuth = (): UseAuthReturn => {
     setUser(null);
     
     // Redirect to login page
-    router.push('/login');
+    router.push('/auth/login');
   }, [router]);
 
   // Utility to update user in state

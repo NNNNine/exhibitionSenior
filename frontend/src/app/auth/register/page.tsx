@@ -6,8 +6,8 @@ import { UserOutlined, LockOutlined, MailOutlined, GoogleOutlined, FacebookOutli
 import { motion } from 'framer-motion';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '@/contexts/AuthContext';
-import { UserRole } from '@/contexts/AuthContext';
+import { useAuthContext } from '@/contexts/AuthContext';
+import { UserRole } from '@/types/user.types';
 
 const { Option } = Select;
 
@@ -21,7 +21,7 @@ interface RegisterFormValues {
 
 export default function Register() {
   const [loading, setLoading] = useState<boolean>(false);
-  const { register } = useAuth();
+  const { register } = useAuthContext();
   const router = useRouter();
   const [form] = Form.useForm();
 
@@ -57,7 +57,7 @@ export default function Register() {
           </h2>
           <p className="mt-2 text-center text-sm text-gray-600">
             Or{' '}
-            <Link href="/login" className="font-medium text-blue-600 hover:text-blue-500">
+            <Link href="/auth/login" className="font-medium text-blue-600 hover:text-blue-500">
               sign in to your existing account
             </Link>
           </p>

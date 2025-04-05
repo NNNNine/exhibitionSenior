@@ -54,17 +54,17 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     const baseItems = [
       {
         key: 'home',
-        label: <Link href="/" style={{ color: 'white' }}>Home</Link>,
+        label: <Link href="/" style={{ color: '#1890ff' }}>Home</Link>,
         icon: <HomeOutlined />,
       },
       {
         key: 'artworks',
-        label: <Link href="/artworks" style={{ color: 'white' }}>Artworks</Link>,
+        label: <Link href="/artworks" style={{ color: '#1890ff' }}>Artworks</Link>,
         icon: <PictureOutlined />,
       },
       {
         key: 'exhibitions',
-        label: <Link href="/exhibitions" style={{ color: 'white' }}>Exhibitions</Link>,
+        label: <Link href="/exhibitions" style={{ color: '#1890ff' }}>Exhibitions</Link>,
         icon: <EnvironmentOutlined />,
       },
     ];
@@ -197,13 +197,13 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
               <Button
                 type="link"
                 icon={<LoginOutlined />}
-                onClick={() => router.push('/login')}
+                onClick={() => router.push('/auth/login')}
               >
                 Log in
               </Button>
               <Button
                 type="primary"
-                onClick={() => router.push('/register')}
+                onClick={() => router.push('/auth/register')}
               >
                 Register
               </Button>
@@ -228,21 +228,35 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
         placement="right"
         onClose={() => setMobileMenuOpen(false)}
         open={mobileMenuOpen}
-        styles={{ body: { padding: 0, backgroundColor: '#fff' } }}
+        styles={{ body: { padding: 0 } }}
       >
         <Menu
           mode="vertical"
           selectedKeys={[getSelectedKey()]}
           items={[
-        ...menuItems, 
-        ...(isAuthenticated ? [
-          { type: 'divider' as const },
-          ...userMenuItems
-        ] : [])
+            ...menuItems, 
+            ...(isAuthenticated ? [
+              { type: 'divider' as const },
+              ...userMenuItems
+            ] : [])
           ]}
-          style={{ borderRight: 0, backgroundColor: '#fff' }}
+          style={{ borderRight: 0 }}
           onClick={() => setMobileMenuOpen(false)}
         />
+
+        {isAuthenticated && (
+          <>
+            <div className="p-4 border-t">
+              <p className="text-gray-500 mb-2">User Menu</p>
+              <Menu
+                mode="vertical"
+                items={userMenuItems}
+                style={{ borderRight: 0 }}
+                onClick={() => setMobileMenuOpen(false)}
+              />
+            </div>
+          </>
+        )}
       </Drawer>
 
       {/* Main Content */}

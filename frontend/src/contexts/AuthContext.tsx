@@ -58,7 +58,7 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
 
   React.useEffect(() => {
     if (!loading && !isAuthenticated) {
-      setRedirectPath(`/login?redirectTo=${encodeURIComponent(window.location.pathname)}`);
+      setRedirectPath(`/auth/login?redirectTo=${encodeURIComponent(window.location.pathname)}`);
     } else if (!loading && requiredRoles.length > 0 && user && !requiredRoles.includes(user.role)) {
       setRedirectPath('/unauthorized');
     }

@@ -38,7 +38,7 @@ export async function middleware(request: NextRequest) {
   
   if (!token) {
     // Redirect to login with the current URL as the redirect target
-    const redirectUrl = new URL('/login', request.url);
+    const redirectUrl = new URL('/auth/login', request.url);
     redirectUrl.searchParams.set('redirectTo', encodeURIComponent(request.url));
     return NextResponse.redirect(redirectUrl);
   }

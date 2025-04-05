@@ -4,6 +4,7 @@ import { ConfigProvider } from 'antd';
 import { AuthProvider } from '@/contexts/AuthContext';
 import Layout from '@/components/layout/Layout';
 import '@/styles/globals.css';
+import '@ant-design/v5-patch-for-react-19';
 
 // Configure font
 const inter = Inter({ subsets: ['latin'] });
