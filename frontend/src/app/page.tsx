@@ -1,103 +1,285 @@
-import Image from "next/image";
+'use client';
+
+import React, { useState, useEffect } from 'react';
+import { Button, Carousel, Card, Typography, Row, Col, Spin, List, Avatar } from 'antd';
+import { useRouter } from 'next/navigation';
+import { 
+  EnvironmentOutlined, 
+  PictureOutlined, 
+  UserOutlined, 
+  RightCircleOutlined 
+} from '@ant-design/icons';
+import { getExhibitions, getArtworks } from '@/lib/api/index';
+import { formatDate } from '@/utils/format';
+import { Exhibition } from '@/types/exhibition.types';
+import { Artwork } from '@/types/artwork.types';
+import Image from 'next/image';
+
+const { Title, Paragraph } = Typography;
 
 export default function Home() {
-  return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm/6 text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-[family-name:var(--font-geist-mono)] font-semibold">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+  const router = useRouter();
+  const [loading, setLoading] = useState(true);
+  const [featuredExhibitions, setFeaturedExhibitions] = useState<Exhibition[]>([]);
+  const [recentArtworks, setRecentArtworks] = useState<Artwork[]>([]);
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        
+        // Fetch active exhibitions
+        const { exhibitions } = await getExhibitions({ 
+          isActive: true,
+          limit: 4 
+        });
+        
+        // Fetch recent artworks
+        const { artworks } = await getArtworks({ 
+          limit: 6 
+        });
+        
+        setFeaturedExhibitions(exhibitions);
+        setRecentArtworks(artworks);
+      } catch (error) {
+        console.error('Error fetching data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchData();
+  }, []);
+
+  return (
+    <div className="min-h-screen">
+      {/* Hero Section */}
+      <section className="relative h-[80vh] flex items-center bg-gradient-to-r from-blue-900 to-indigo-900 text-white">
+        <div className="absolute inset-0 z-0 opacity-30">
+          <Image
+            src="/hero-background.jpg" // Replace with your actual image path
+            alt="Exhibition Art"
+            fill
+            style={{ objectFit: 'cover' }}
+            priority
+          />
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+        <div className="container mx-auto px-6 z-10">
+          <div className="max-w-2xl">
+            <h1 className="text-5xl md:text-6xl font-bold mb-6">
+              Experience Art in a New Dimension
+            </h1>
+            <p className="text-xl mb-8">
+              Explore virtual exhibitions and discover amazing artworks in an immersive 3D environment.
+            </p>
+            <div className="flex flex-wrap gap-4">
+              <Button 
+                type="primary" 
+                size="large"
+                onClick={() => router.push('/exhibitions')}
+                className="h-12 px-8 text-lg"
+              >
+                Browse Exhibitions
+              </Button>
+              <Button 
+                size="large"
+                onClick={() => router.push('/auth/register')}
+                className="h-12 px-8 text-lg"
+              >
+                Join as Artist
+              </Button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Featured Exhibitions Section */}
+      <section className="py-16 bg-gray-50">
+        <div className="container mx-auto px-6">
+          <div className="flex justify-between items-center mb-10">
+            <Title level={2}>Featured Exhibitions</Title>
+            <Button 
+              type="link" 
+              onClick={() => router.push('/exhibitions')}
+              icon={<RightCircleOutlined />}
+            >
+              See All Exhibitions
+            </Button>
+          </div>
+          
+          {loading ? (
+            <div className="flex justify-center py-12">
+              <Spin size="large" />
+            </div>
+          ) : (
+            <Row gutter={[24, 24]}>
+              {featuredExhibitions.map((exhibition) => (
+                <Col xs={24} sm={12} md={8} lg={6} key={exhibition.id}>
+                  <Card
+                    hoverable
+                    cover={
+                      <div className="h-48 bg-gray-200 flex items-center justify-center">
+                        <EnvironmentOutlined style={{ fontSize: 48, color: '#d9d9d9' }} />
+                      </div>
+                    }
+                    onClick={() => router.push(`/exhibitions/${exhibition.id}`)}
+                  >
+                    <Card.Meta
+                      title={exhibition.title}
+                      description={
+                        <>
+                          <p className="text-gray-500 line-clamp-2 mb-2">
+                            {exhibition.description}
+                          </p>
+                          <p className="text-gray-400 text-sm">
+                            {formatDate(exhibition.startDate)} - {formatDate(exhibition.endDate)}
+                          </p>
+                        </>
+                      }
+                    />
+                  </Card>
+                </Col>
+              ))}
+              
+              {featuredExhibitions.length === 0 && (
+                <Col span={24}>
+                  <div className="text-center py-12">
+                    <p className="text-gray-500">No active exhibitions at the moment. Check back soon!</p>
+                  </div>
+                </Col>
+              )}
+            </Row>
+          )}
+        </div>
+      </section>
+
+      {/* How It Works Section */}
+      <section className="py-16">
+        <div className="container mx-auto px-6">
+          <Title level={2} className="text-center mb-12">How It Works</Title>
+          
+          <Row gutter={[32, 32]}>
+            <Col xs={24} md={8}>
+              <Card className="h-full text-center">
+                <div className="text-4xl text-blue-500 mb-4">
+                  <UserOutlined />
+                </div>
+                <Title level={3}>Join as an Artist</Title>
+                <Paragraph>
+                  Create your profile, upload your artworks, and get discovered by curators and art enthusiasts.
+                </Paragraph>
+              </Card>
+            </Col>
+            
+            <Col xs={24} md={8}>
+              <Card className="h-full text-center">
+                <div className="text-4xl text-blue-500 mb-4">
+                  <PictureOutlined />
+                </div>
+                <Title level={3}>Share Your Art</Title>
+                <Paragraph>
+                  Upload high-quality images of your artwork along with descriptions, categories, and tags.
+                </Paragraph>
+              </Card>
+            </Col>
+            
+            <Col xs={24} md={8}>
+              <Card className="h-full text-center">
+                <div className="text-4xl text-blue-500 mb-4">
+                  <EnvironmentOutlined />
+                </div>
+                <Title level={3}>Experience in 3D</Title>
+                <Paragraph>
+                  Explore curated exhibitions in our immersive 3D virtual gallery environment.
+                </Paragraph>
+              </Card>
+            </Col>
+          </Row>
+        </div>
+      </section>
+
+      {/* Recent Artworks Section */}
+      <section className="py-16 bg-gray-50">
+        <div className="container mx-auto px-6">
+          <div className="flex justify-between items-center mb-10">
+            <Title level={2}>Recently Added Artworks</Title>
+            <Button 
+              type="link" 
+              onClick={() => router.push('/artworks')}
+              icon={<RightCircleOutlined />}
+            >
+              Browse All Artworks
+            </Button>
+          </div>
+          
+          {loading ? (
+            <div className="flex justify-center py-12">
+              <Spin size="large" />
+            </div>
+          ) : (
+            <Row gutter={[24, 24]}>
+              {recentArtworks.map((artwork) => (
+                <Col xs={24} sm={12} md={8} key={artwork.id}>
+                  <Card
+                    hoverable
+                    cover={
+                      <img
+                        alt={artwork.title}
+                        src={artwork.thumbnailUrl || artwork.fileUrl}
+                        className="h-48 w-full object-cover"
+                      />
+                    }
+                    onClick={() => router.push(`/artworks/${artwork.id}`)}
+                  >
+                    <Card.Meta
+                      title={artwork.title}
+                      description={
+                        <>
+                          <p className="text-gray-500 mb-2">
+                            By {artwork.artist?.username || `Artist #${artwork.artistId}`}
+                          </p>
+                          <p className="text-gray-400 text-sm">
+                            {formatDate(artwork.creationDate)}
+                          </p>
+                        </>
+                      }
+                    />
+                  </Card>
+                </Col>
+              ))}
+            </Row>
+          )}
+        </div>
+      </section>
+
+      {/* CTA Section */}
+      <section className="py-16 bg-blue-900 text-white">
+        <div className="container mx-auto px-6 text-center">
+          <Title level={2} style={{ color: 'white' }}>Ready to Join Our Art Community?</Title>
+          <Paragraph className="text-lg mb-8 max-w-2xl mx-auto">
+            Whether you're an artist looking to showcase your work, a curator creating immersive exhibitions,
+            or an art enthusiast exploring new creations, we have a place for you.
+          </Paragraph>
+          <div className="flex flex-wrap justify-center gap-4">
+            <Button 
+              type="primary" 
+              size="large"
+              onClick={() => router.push('/auth/register')}
+              className="h-12 px-8 text-lg"
+            >
+              Sign Up Now
+            </Button>
+            <Button 
+              ghost
+              size="large"
+              onClick={() => router.push('/exhibitions')}
+              className="h-12 px-8 text-lg"
+            >
+              Browse Exhibitions
+            </Button>
+          </div>
+        </div>
+      </section>
     </div>
   );
 }

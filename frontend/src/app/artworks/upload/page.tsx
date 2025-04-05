@@ -6,7 +6,7 @@ import { Card, message } from 'antd';
 import { ProtectedRoute } from '@/contexts/AuthContext';
 import { UserRole } from '@/types/user.types';
 import ArtworkUploadForm from '@/components/artwork/ArtworkUploadForm';
-import { createArtwork } from '@/lib/api';
+import { createArtwork } from '@/lib/api/index';
 
 const ArtworkUploadPage: React.FC = () => {
   const router = useRouter();

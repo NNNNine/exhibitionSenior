@@ -5,7 +5,7 @@ import { Form, Input, Button, message, Result } from 'antd';
 import { MailOutlined } from '@ant-design/icons';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
-import apiService from '@/lib/api';
+import { forgotPassword } from '@/lib/api/auth';
 
 interface ForgotPasswordFormValues {
   email: string;
@@ -18,7 +18,7 @@ export default function ForgotPassword() {
   const onFinish = async (values: ForgotPasswordFormValues) => {
     setLoading(true);
     try {
-      await apiService.auth.forgotPassword(values.email);
+      await forgotPassword(values.email);
       setSubmitted(true);
     } catch (error) {
       console.error('Error requesting password reset:', error);

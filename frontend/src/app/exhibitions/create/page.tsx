@@ -7,7 +7,7 @@ import { ProtectedRoute } from '@/contexts/AuthContext';
 import { UserRole } from '@/types/user.types';
 import ExhibitionCreateForm from '@/components/exhibition/ExhibitionCreateForm';
 import { ExhibitionCreateData } from '@/types/exhibition.types';
-import { createExhibition } from '@/lib/api';
+import { createExhibition } from '@/lib/api/index';
 
 const ExhibitionCreatePage: React.FC = () => {
   const router = useRouter();

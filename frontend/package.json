@@ -12,6 +12,7 @@
     "@ant-design/v5-patch-for-react-19": "^1.0.3",
     "antd": "^5.24.6",
     "axios": "^1.8.4",
+    "date-fns": "^4.1.0",
     "moment": "^2.30.1",
     "motion": "^12.6.3",
     "next": "15.2.4",

@@ -26,7 +26,7 @@ import {
   ArrowLeftOutlined
 } from '@ant-design/icons';
 import { useAuthContext } from '@/contexts/AuthContext';
-import { getArtworkById, deleteArtwork } from '@/lib/api';
+import { getArtworkById, deleteArtwork } from '@/lib/api/index';
 import { Artwork, Comment } from '@/types/artwork.types';
 import { formatDate } from '@/utils/format';
 

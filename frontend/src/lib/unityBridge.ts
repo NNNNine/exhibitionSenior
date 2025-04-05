@@ -15,6 +15,7 @@ class UnityBridge {
   private unityInstance: UnityInstance | null = null;
   private callbacks: CallbackMap = {};
   private isReady: boolean = false;
+  private messageQueue: Array<{gameObject: string, method: string, data: string}> = [];
   
   constructor() {
     // Define method to be called from Unity
@@ -29,6 +30,15 @@ class UnityBridge {
   public setUnityInstance(instance: UnityInstance): void {
     this.unityInstance = instance;
     console.log('Unity instance initialized');
+    
+    // Process any queued messages
+    if (this.messageQueue.length > 0) {
+      console.log(`Processing ${this.messageQueue.length} queued messages`);
+      this.messageQueue.forEach(msg => {
+        this.sendMessage(msg.gameObject, msg.method, msg.data);
+      });
+      this.messageQueue = [];
+    }
   }
   
   // Register callback for specific message type
@@ -54,11 +64,19 @@ class UnityBridge {
   }
   
   // Handle messages from Unity
-  public handleUnityMessage(messageType: string, data: any): void {
-    console.log(`Unity message received: ${messageType}`, data);
+  public handleUnityMessage(messageType: string, dataJson: string): void {
+    console.log(`Unity message received: ${messageType}`, dataJson);
+    
+    let data;
+    try {
+      data = JSON.parse(dataJson);
+    } catch (e) {
+      data = dataJson; // If not JSON, use as-is
+    }
     
     if (messageType === 'UnityReady') {
       this.isReady = true;
+      console.log('Unity is ready for messages');
     }
     
     if (this.callbacks[messageType]) {
@@ -72,15 +90,19 @@ class UnityBridge {
     }
   }
   
-  // Send message to Unity
-  public sendMessage(gameObject: string, method: string, data: string): boolean {
+  // Send message to Unity with error handling and queuing
+  public sendMessage(gameObject: string, method: string, data: any): boolean {
+    // Convert data to string if it's not already
+    const dataString = typeof data === 'string' ? data : JSON.stringify(data);
+    
     if (!this.unityInstance) {
-      console.warn('Unity instance not initialized yet');
+      console.warn('Unity instance not initialized yet, queuing message');
+      this.messageQueue.push({gameObject, method, data: dataString});
       return false;
     }
     
     try {
-      this.unityInstance.SendMessage(gameObject, method, data);
+      this.unityInstance.SendMessage(gameObject, method, dataString);
       return true;
     } catch (error) {
       console.error('Error sending message to Unity:', error);
@@ -90,12 +112,25 @@ class UnityBridge {
   
   // Load exhibition in Unity
   public loadExhibition(exhibitionId: string): boolean {
-    return this.sendMessage('GalleryManager', 'LoadExhibition', exhibitionId);
+    console.log(`Requesting Unity to load exhibition: ${exhibitionId}`);
+    return this.sendMessage('ExhibitionManager', 'LoadExhibition', exhibitionId);
+  }
+  
+  // Position artwork in Unity
+  public positionArtwork(artworkId: string, position: {x: number, y: number, z: number}, rotation: {x: number, y: number, z: number}): boolean {
+    const data = {
+      artworkId,
+      position,
+      rotation
+    };
+    console.log(`Positioning artwork in Unity: ${artworkId}`, data);
+    return this.sendMessage('ExhibitionManager', 'PositionArtwork', data);
   }
   
   // Select artwork in Unity
   public selectArtwork(artworkId: string): boolean {
-    return this.sendMessage('GalleryManager', 'SelectArtwork', artworkId);
+    console.log(`Selecting artwork in Unity: ${artworkId}`);
+    return this.sendMessage('ExhibitionManager', 'SelectArtwork', artworkId);
   }
   
   // Check if Unity is ready
@@ -103,7 +138,7 @@ class UnityBridge {
     return this.isReady;
   }
   
-  // Wait for Unity to be ready
+  // Wait for Unity to be ready with timeout
   public async waitForUnity(timeout: number = 10000): Promise<boolean> {
     if (this.isReady) return Promise.resolve(true);
     

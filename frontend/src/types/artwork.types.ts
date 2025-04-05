@@ -21,6 +21,19 @@ export interface Artwork {
 }
 
 /**
+ * Artwork interface - represents an artwork in the system with likes and comments
+ * and exhibition items
+ * This interface extends the Artwork interface to include likes and comments
+ * and exhibition items
+ */
+export interface ArtworkWithLikes extends Artwork {
+  likes: number;
+  isLiked: boolean;
+  comments: Comment[];
+  exhibitionItems: ExhibitionItem[];
+}
+
+/**
  * Comment interface - represents a comment on an artwork
  */
 export interface Comment {

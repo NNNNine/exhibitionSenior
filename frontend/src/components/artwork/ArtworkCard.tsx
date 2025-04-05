@@ -6,13 +6,13 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { formatDistanceToNow } from 'date-fns';
 import { EyeOutlined, HeartOutlined, HeartFilled, CommentOutlined } from '@ant-design/icons';
-import { Artwork } from '@/lib/api';
+import { Artwork, ArtworkWithLikes } from '@/types/artwork.types';
 
 const { Meta } = Card;
 const { Text } = Typography;
 
 interface ArtworkCardProps {
-  artwork: Artwork;
+  artwork: ArtworkWithLikes;
   onLikeClick?: (artworkId: string, isLiked: boolean) => void;
 }
 
