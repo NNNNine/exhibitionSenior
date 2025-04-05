@@ -1,4 +1,6 @@
-import React, { useState } from 'react';
+'use client';
+
+import React, { useState, useEffect, useMemo } from 'react';
 import { Layout as AntLayout, Menu, Button, Dropdown, Avatar, Space, Drawer } from 'antd';
 import Link from 'next/link';
 import { useRouter, usePathname } from 'next/navigation';
@@ -27,21 +29,84 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   const router = useRouter();
   const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [isClient, setIsClient] = useState(false);
+
+  // Ensure component only renders on client
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   // Get current selected menu item based on pathname
   const getSelectedKey = () => {
+    if (!pathname) return 'home';
     if (pathname === '/') return 'home';
-    if (pathname?.startsWith('/artworks')) return 'artworks';
-    if (pathname?.startsWith('/exhibitions')) return 'exhibitions';
-    if (pathname?.startsWith('/artist')) return 'artist';
-    if (pathname?.startsWith('/curator')) return 'curator';
-    if (pathname?.startsWith('/admin')) return 'admin';
-    if (pathname?.startsWith('/profile')) return 'profile';
+    if (pathname.startsWith('/artworks')) return 'artworks';
+    if (pathname.startsWith('/exhibitions')) return 'exhibitions';
+    if (pathname.startsWith('/artist')) return 'artist';
+    if (pathname.startsWith('/curator')) return 'curator';
+    if (pathname.startsWith('/admin')) return 'admin';
+    if (pathname.startsWith('/profile')) return 'profile';
     return '';
   };
 
+  // Memoize menu items to prevent unnecessary re-renders
+  const menuItems = useMemo(() => {
+    const baseItems = [
+      {
+        key: 'home',
+        label: <Link href="/" style={{ color: 'white' }}>Home</Link>,
+        icon: <HomeOutlined />,
+      },
+      {
+        key: 'artworks',
+        label: <Link href="/artworks" style={{ color: 'white' }}>Artworks</Link>,
+        icon: <PictureOutlined />,
+      },
+      {
+        key: 'exhibitions',
+        label: <Link href="/exhibitions" style={{ color: 'white' }}>Exhibitions</Link>,
+        icon: <EnvironmentOutlined />,
+      },
+    ];
+
+    // Add role-specific items if authenticated
+    if (isAuthenticated && user) {
+      if (user.role === UserRole.ARTIST) {
+        baseItems.push({
+          key: 'artist',
+          label: <Link href="/artist">Artist Dashboard</Link>,
+          icon: <DashboardOutlined />,
+        });
+        baseItems.push({
+          key: 'upload',
+          label: <Link href="/artworks/upload">Upload Artwork</Link>,
+          icon: <PlusOutlined />,
+        });
+      } else if (user.role === UserRole.CURATOR) {
+        baseItems.push({
+          key: 'curator',
+          label: <Link href="/curator">Curator Dashboard</Link>,
+          icon: <DashboardOutlined />,
+        });
+        baseItems.push({
+          key: 'create-exhibition',
+          label: <Link href="/exhibitions/create">Create Exhibition</Link>,
+          icon: <PlusOutlined />,
+        });
+      } else if (user.role === UserRole.ADMIN) {
+        baseItems.push({
+          key: 'admin',
+          label: <Link href="/admin">Admin Dashboard</Link>,
+          icon: <DashboardOutlined />,
+        });
+      }
+    }
+
+    return baseItems;
+  }, [isAuthenticated, user]);
+
   // User menu items
-  const userMenuItems = [
+  const userMenuItems = useMemo(() => [
     {
       key: 'profile',
       label: 'Profile',
@@ -74,58 +139,11 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
       icon: <LogoutOutlined />,
       onClick: () => logout(),
     },
-  ];
+  ], [user, logout, router]);
 
-  // Main menu items
-  const menuItems = [
-    {
-      key: 'home',
-      label: <Link href="/">Home</Link>,
-      icon: <HomeOutlined />,
-    },
-    {
-      key: 'artworks',
-      label: <Link href="/artworks">Artworks</Link>,
-      icon: <PictureOutlined />,
-    },
-    {
-      key: 'exhibitions',
-      label: <Link href="/exhibitions">Exhibitions</Link>,
-      icon: <EnvironmentOutlined />,
-    },
-  ];
-
-  // Role-specific menu items
-  if (isAuthenticated) {
-    if (user?.role === UserRole.ARTIST) {
-      menuItems.push({
-        key: 'artist',
-        label: <Link href="/artist">Artist Dashboard</Link>,
-        icon: <DashboardOutlined />,
-      });
-      menuItems.push({
-        key: 'upload',
-        label: <Link href="/artworks/upload">Upload Artwork</Link>,
-        icon: <PlusOutlined />,
-      });
-    } else if (user?.role === UserRole.CURATOR) {
-      menuItems.push({
-        key: 'curator',
-        label: <Link href="/curator">Curator Dashboard</Link>,
-        icon: <DashboardOutlined />,
-      });
-      menuItems.push({
-        key: 'create-exhibition',
-        label: <Link href="/exhibitions/create">Create Exhibition</Link>,
-        icon: <PlusOutlined />,
-      });
-    } else if (user?.role === UserRole.ADMIN) {
-      menuItems.push({
-        key: 'admin',
-        label: <Link href="/admin">Admin Dashboard</Link>,
-        icon: <DashboardOutlined />,
-      });
-    }
+  // Prevent hydration errors by rendering nothing on initial server-side render
+  if (!isClient) {
+    return null;
   }
 
   return (
@@ -141,32 +159,41 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           </Link>
         </div>
 
-        {/* Desktop Navigation */}
-        <div className="hidden md:block">
-          <Menu
-            mode="horizontal"
-            selectedKeys={[getSelectedKey()]}
-            items={menuItems}
-            className="border-0"
-          />
-        </div>
+        {/* Navigation */}
+        <div className="flex items-center space-x-4">
+          {/* Desktop Navigation */}
+          <div className="hidden md:block">
+            <Menu
+              mode="horizontal"
+              selectedKeys={[getSelectedKey()]}
+              items={menuItems}
+              className="border-0 flex items-center"
+              style={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                justifyContent: 'center',
+                border: 'none',
+                backgroundColor: 'transparent',
+              }}
+            />
+          </div>
 
-        {/* User Menu / Login Button */}
-        <div className="flex items-center">
-          {isAuthenticated ? (
-            <Dropdown menu={{ items: userMenuItems }} placement="bottomRight">
+          {/* User Menu / Login Button */}
+            <div className="flex items-center">
+            {isAuthenticated ? (
+              <Dropdown menu={{ items: userMenuItems }} placement="bottomRight">
               <Button type="link" className="flex items-center">
                 <Avatar
-                  size="small"
-                  icon={<UserOutlined />}
-                  src={user?.profileUrl}
-                  className="mr-2"
+                size="small"
+                icon={<UserOutlined />}
+                src={user?.profileUrl}
+                className="mr-2"
                 />
                 <span className="hidden sm:inline">{user?.username}</span>
               </Button>
-            </Dropdown>
-          ) : (
-            <Space>
+              </Dropdown>
+            ) : (
+              <Space>
               <Button
                 type="link"
                 icon={<LoginOutlined />}
@@ -180,16 +207,18 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
               >
                 Register
               </Button>
-            </Space>
-          )}
+              </Space>
+            )}
 
-          {/* Mobile Menu Button */}
-          <Button
-            type="text"
-            icon={<MenuOutlined />}
-            onClick={() => setMobileMenuOpen(true)}
-            className="ml-2 md:hidden"
-          />
+            {/* Mobile Menu Button */}
+            <Button
+              type="text"
+              icon={<MenuOutlined />}
+              onClick={() => setMobileMenuOpen(true)}
+              className="ml-2 md:hidden"
+              style={{ color: '#fff' }}
+            />
+            </div>
         </div>
       </Header>
 
@@ -199,29 +228,21 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
         placement="right"
         onClose={() => setMobileMenuOpen(false)}
         open={mobileMenuOpen}
-        bodyStyle={{ padding: 0 }}
+        styles={{ body: { padding: 0, backgroundColor: '#fff' } }}
       >
         <Menu
           mode="vertical"
           selectedKeys={[getSelectedKey()]}
-          items={menuItems}
-          style={{ borderRight: 0 }}
+          items={[
+        ...menuItems, 
+        ...(isAuthenticated ? [
+          { type: 'divider' as const },
+          ...userMenuItems
+        ] : [])
+          ]}
+          style={{ borderRight: 0, backgroundColor: '#fff' }}
           onClick={() => setMobileMenuOpen(false)}
         />
-        
-        {isAuthenticated && (
-          <>
-            <div className="p-4 border-t">
-              <p className="text-gray-500 mb-2">User Menu</p>
-              <Menu
-                mode="vertical"
-                items={userMenuItems}
-                style={{ borderRight: 0 }}
-                onClick={() => setMobileMenuOpen(false)}
-              />
-            </div>
-          </>
-        )}
       </Drawer>
 
       {/* Main Content */}

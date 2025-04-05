@@ -1,12 +1,30 @@
 'use client';
 
-import { useState } from 'react';
-import { Form, Input, Button, Checkbox, message, Divider } from 'antd';
-import { UserOutlined, LockOutlined, GoogleOutlined, FacebookOutlined } from '@ant-design/icons';
+import React, { useState } from 'react';
+import { 
+  Form, 
+  Input, 
+  Button, 
+  Checkbox, 
+  message, 
+  Divider 
+} from 'antd';
+import { 
+  UserOutlined, 
+  LockOutlined, 
+  GoogleOutlined, 
+  FacebookOutlined 
+} from '@ant-design/icons';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuthContext } from '@/contexts/AuthContext';
+
+// Metadata for the page
+export const metadata = {
+  title: 'Login - Exhibition Art Online',
+  description: 'Login to your Exhibition Art Online account'
+};
 
 interface LoginFormValues {
   email: string;
@@ -14,9 +32,9 @@ interface LoginFormValues {
   remember: boolean;
 }
 
-export default function Login() {
+export default function LoginPage() {
   const [loading, setLoading] = useState<boolean>(false);
-  const { login } = useAuth();
+  const { login } = useAuthContext();
   const router = useRouter();
 
   const onFinish = async (values: LoginFormValues) => {
@@ -27,9 +45,11 @@ export default function Login() {
       router.push('/dashboard');
     } catch (error) {
       console.error('Login error:', error);
-      message.error(error instanceof Error 
-        ? error.message 
-        : 'Login failed. Please check your credentials.');
+      message.error(
+        error instanceof Error 
+          ? error.message 
+          : 'Login failed. Please check your credentials.'
+      );
     } finally {
       setLoading(false);
     }
@@ -94,7 +114,7 @@ export default function Login() {
               <Checkbox>Remember me</Checkbox>
             </Form.Item>
 
-            <Link href="/forgot-password" className="font-medium text-blue-600 hover:text-blue-500">
+            <Link href="/auth/forgot-password" className="font-medium text-blue-600 hover:text-blue-500">
               Forgot your password?
             </Link>
           </div>
