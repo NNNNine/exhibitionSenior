@@ -19,7 +19,7 @@ const ProfileEdit: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [passwordLoading, setPasswordLoading] = useState(false);
   const [preferencesLoading, setPreferencesLoading] = useState(false);
-  const [avatarUrl, setAvatarUrl] = useState(user?.profileUrl || '');
+  const [avatarUrl, setAvatarUrl] = useState(user?.profileUrl || null);
 
   // Set initial form values
   useEffect(() => {
@@ -42,8 +42,10 @@ const ProfileEdit: React.FC = () => {
         });
       }
       
-      if (user.profileUrl) {
+      if (user.profileUrl && user.profileUrl.trim() !== '') {
         setAvatarUrl(user.profileUrl);
+      } else {
+        setAvatarUrl(null);
       }
     }
   }, [user, form, preferencesForm]);
@@ -108,6 +110,9 @@ const ProfileEdit: React.FC = () => {
       setAvatarUrl(fakeUrl);
       form.setFieldsValue({ profileUrl: fakeUrl });
       message.success('Avatar updated successfully');
+    } else if (info.file.status === 'error') {
+      message.error('Avatar upload failed');
+      setAvatarUrl(null);
     }
   };
 
@@ -136,7 +141,7 @@ const ProfileEdit: React.FC = () => {
                       <Avatar 
                         size={128} 
                         icon={<UserOutlined />} 
-                        src={avatarUrl}
+                        src={avatarUrl || undefined}
                         className="mb-4"
                       />
                       
