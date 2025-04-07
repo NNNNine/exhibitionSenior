@@ -1,6 +1,6 @@
 import React from 'react';
 import { Inter } from 'next/font/google';
-import { ConfigProvider } from 'antd';
+import { ConfigProvider, App } from 'antd';
 import { AuthProvider } from '@/contexts/AuthContext';
 import Layout from '@/components/layout/Layout';
 import '@/styles/globals.css';
@@ -14,11 +14,7 @@ export const metadata = {
   description: 'Experience art exhibitions in an immersive 3D environment',
 };
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function RootLayout({ children,}: { children: React.ReactNode; }) {
   return (
     <html lang="en">
       <head>
@@ -46,9 +42,11 @@ export default function RootLayout({
             },
           }}
         >
-          <AuthProvider>
-            <Layout>{children}</Layout>
-          </AuthProvider>
+          <App>
+            <AuthProvider>
+              <Layout>{children}</Layout>
+            </AuthProvider>
+          </App>
         </ConfigProvider>
       </body>
     </html>

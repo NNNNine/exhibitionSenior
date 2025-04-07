@@ -14,7 +14,8 @@ import {
   Input,
   Avatar,
   Popconfirm,
-  message
+  message,
+  Image
 } from 'antd';
 import { 
   UserOutlined, 
@@ -48,6 +49,7 @@ const ArtworkDetailPage: React.FC = () => {
       setLoading(true);
       try {
         const artworkData = await getArtworkById(id as string);
+        console.log('Fetched artwork:', artworkData);
         setArtwork(artworkData);
       } catch (err: any) {
         setError(err.message);
@@ -177,9 +179,11 @@ const ArtworkDetailPage: React.FC = () => {
         <div className="lg:col-span-2">
           <Card className="mb-6 overflow-hidden">
             <div className="flex justify-center">
-              <img
+              <Image
                 src={artwork.fileUrl}
                 alt={artwork.title}
+                width={600}
+                height={600}
                 className="max-w-full max-h-[600px] object-contain"
               />
             </div>

@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
-import { Form, Input, Button, Upload, Select, DatePicker, message, Alert } from 'antd';
+import { Form, Input, Button, Upload, Select, DatePicker, message, Alert, Image } from 'antd';
 import { InboxOutlined, UploadOutlined } from '@ant-design/icons';
-import Image from 'next/image';
 import moment from 'moment';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { ArtworkCreateData } from '@/types/artwork.types';
@@ -201,7 +200,7 @@ const ArtworkUploadForm: React.FC<ArtworkUploadFormProps> = ({
         >
           {previewImage ? (
             <div className="p-4">
-              <img
+              <Image
                 src={previewImage}
                 alt="Artwork preview"
                 style={{ maxHeight: '200px', maxWidth: '100%', objectFit: 'contain' }}
