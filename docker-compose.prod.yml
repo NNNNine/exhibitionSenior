@@ -1,0 +1,84 @@
+version: '3.8'
+
+services:
+  # Database service
+  db:
+    image: postgres:13-alpine
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER:-postgres}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-postgres}
+      - POSTGRES_DB=${POSTGRES_DB:-exhibition_art}
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - exhibition_network
+
+  # Backend API service
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - DB_URL=postgres://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@db:5432/${POSTGRES_DB:-exhibition_art}
+      - DB_PORT=5432
+      - JWT_SECRET=${JWT_SECRET:-your_jwt_secret_key}
+      - JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET:-your_jwt_refresh_secret}
+      - JWT_RESET_SECRET=${JWT_RESET_SECRET:-your_jwt_reset_secret}
+      - JWT_EXPIRY=${JWT_EXPIRY:-24h}
+      - REFRESH_TOKEN_EXPIRY=${REFRESH_TOKEN_EXPIRY:-7d}
+      - FRONTEND_URL=${FRONTEND_URL:-https://yourdomain.com}
+    volumes:
+      - uploaded_data:/app/uploads
+    restart: unless-stopped
+    networks:
+      - exhibition_network
+
+  # Frontend service
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    depends_on:
+      - backend
+    environment:
+      - NODE_ENV=production
+      - NEXT_PUBLIC_API_URL=${API_URL:-https://api.yourdomain.com/api}
+    restart: unless-stopped
+    networks:
+      - exhibition_network
+
+  # Nginx reverse proxy
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/conf.d:/etc/nginx/conf.d
+      - ./nginx/ssl:/etc/nginx/ssl
+      - uploaded_data:/var/www/uploads
+    depends_on:
+      - frontend
+      - backend
+    restart: unless-stopped
+    networks:
+      - exhibition_network
+
+volumes:
+  postgres_data:
+  uploaded_data:
+
+networks:
+  exhibition_network:
+    driver: bridge

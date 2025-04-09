@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Card, message } from 'antd';
-import { ProtectedRoute } from '@/contexts/AuthContext';
+import { withProtectedRoute } from '@/contexts/AuthContext';
 import { UserRole } from '@/types/user.types';
 import ArtworkUploadForm from '@/components/artwork/ArtworkUploadForm';
 import { createArtwork } from '@/lib/api/index';
@@ -28,16 +28,17 @@ const ArtworkUploadPage: React.FC = () => {
   };
 
   return (
-    <ProtectedRoute requiredRoles={[UserRole.ARTIST]}>
-      <div className="max-w-3xl mx-auto py-8 px-4">
-        <h1 className="text-2xl font-bold mb-6">Upload New Artwork</h1>
-        
-        <Card>
-          <ArtworkUploadForm onSubmit={handleSubmit} loading={loading} />
-        </Card>
-      </div>
-    </ProtectedRoute>
+    <div className="max-w-3xl mx-auto py-8 px-4">
+      <h1 className="text-2xl font-bold mb-6">Upload New Artwork</h1>
+      
+      <Card>
+        <ArtworkUploadForm onSubmit={handleSubmit} loading={loading} />
+      </Card>
+    </div>
   );
 };
 
-export default ArtworkUploadPage;
+export default withProtectedRoute(ArtworkUploadPage, {
+  requiredRoles: [UserRole.ARTIST],
+  redirectTo: '/unauthorized',
+})

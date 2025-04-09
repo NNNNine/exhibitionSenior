@@ -10,7 +10,7 @@ import {
   RightCircleOutlined 
 } from '@ant-design/icons';
 import { getExhibitions, getArtworks } from '@/lib/api/index';
-import { formatDate } from '@/utils/format';
+import { formatDate, formatImageUrl } from '@/utils/format';
 import { Exhibition } from '@/types/exhibition.types';
 import { Artwork } from '@/types/artwork.types';
 import Image from 'next/image';
@@ -225,7 +225,7 @@ export default function Home() {
                     cover={
                       <img
                         alt={artwork.title}
-                        src={artwork.thumbnailUrl || artwork.fileUrl}
+                        src={formatImageUrl(artwork.thumbnailUrl || artwork.fileUrl)}
                         className="h-48 w-full object-cover"
                       />
                     }
@@ -256,7 +256,7 @@ export default function Home() {
       <section className="py-16 bg-blue-900 text-white">
         <div className="container mx-auto px-6 text-center">
           <Title level={2} style={{ color: 'white' }}>Ready to Join Our Art Community?</Title>
-          <Paragraph className="text-lg mb-8 max-w-2xl mx-auto">
+          <Paragraph style={{color: 'white'}} className="text-lg mb-8 max-w-2xl mx-auto">
             Whether you're an artist looking to showcase your work, a curator creating immersive exhibitions,
             or an art enthusiast exploring new creations, we have a place for you.
           </Paragraph>

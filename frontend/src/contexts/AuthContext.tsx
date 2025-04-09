@@ -1,6 +1,7 @@
 'use client'
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
+import { Card, Spin, Button, Alert, Result } from 'antd';
 import { User, UserRole } from '@/types/user.types';
 import * as authApi from '@/lib/api/auth';
 
@@ -27,7 +28,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [initialLoading, setInitialLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
-  const pathname = usePathname();
+  // const pathname = usePathname();
 
   // Check if user is already logged in on initial load
   useEffect(() => {
@@ -219,43 +220,138 @@ export const useAuthContext = (): AuthContextType => {
 interface ProtectedRouteProps {
   children: ReactNode;
   requiredRoles?: UserRole[];
+  redirectTo?: string;
+  showUnauthorized?: boolean; // Whether to show a 403 page or redirect
 }
 
 export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ 
   children, 
-  requiredRoles = [] 
+  requiredRoles = [],
+  redirectTo,
+  showUnauthorized = true // Default to showing 403 page
 }) => {
   const { user, isAuthenticated, loading } = useAuthContext();
   const router = useRouter();
   const pathname = usePathname();
+  const [hasAccess, setHasAccess] = useState<boolean | null>(null);
   
-  // Handle authentication and authorization
+  // Enhanced auth check with role validation
   useEffect(() => {
     if (!loading) {
       if (!isAuthenticated) {
-        // If not authenticated, redirect to login
-        router.replace(`/auth/login?redirectTo=${encodeURIComponent(pathname || '/')}`);
-      } else if (requiredRoles.length > 0 && user && !requiredRoles.includes(user.role)) {
-        // If authenticated but doesn't have required role, redirect to unauthorized
-        router.replace('/unauthorized');
+        // If not authenticated, redirect to login with return URL
+        const returnUrl = encodeURIComponent(pathname || '/');
+        router.replace(`/auth/login?redirectTo=${returnUrl}`);
+        setHasAccess(false);
+      } else if (requiredRoles.length > 0 && user) {
+        // Check if user has required role
+        const hasRequiredRole = requiredRoles.includes(user.role);
+        setHasAccess(hasRequiredRole);
+        
+        // If no access and we should redirect (not show 403)
+        if (!hasRequiredRole && !showUnauthorized) {
+          // Redirect to provided URL or dashboard based on role
+          const targetUrl = redirectTo || getDashboardByRole(user.role);
+          router.replace(targetUrl);
+        }
+      } else {
+        // Authenticated and no specific role required
+        setHasAccess(true);
       }
     }
-  }, [loading, isAuthenticated, user, requiredRoles, router, pathname]);
+  }, [loading, isAuthenticated, user, requiredRoles, pathname, router, redirectTo, showUnauthorized]);
 
-  // If auth is still loading, show a spinner
+  // Helper function to get dashboard URL by role
+  const getDashboardByRole = (role: UserRole): string => {
+    switch (role) {
+      case UserRole.ARTIST:
+        return '/dashboard/artist';
+      case UserRole.CURATOR:
+        return '/dashboard/curator';
+      case UserRole.ADMIN:
+        return '/dashboard/admin';
+      default:
+        return '/';
+    }
+  };
+
+  // If loading, show spinner
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+        <Card className="w-96 text-center p-6">
+          <Spin size="large" />
+          <p className="mt-4">Verifying access...</p>
+        </Card>
       </div>
     );
   }
   
-  // If not authenticated or doesn't have required role, show nothing
-  if (!isAuthenticated || (requiredRoles.length > 0 && user && !requiredRoles.includes(user.role))) {
-    return null;
+  // If access check completed and no access, show 403 error
+  if (hasAccess === false && showUnauthorized) {
+    return (
+      <div className="flex items-center justify-center min-h-screen p-4">
+        <Result
+          status="403"
+          title="Unauthorized Access"
+          subTitle={
+            isAuthenticated
+              ? `Your current role (${user?.role}) does not have permission to access this page`
+              : "Please log in to access this page"
+          }
+          extra={[
+            <Button 
+              type="primary" 
+              key="home" 
+              onClick={() => router.push('/')}
+            >
+              Back to Home
+            </Button>,
+            isAuthenticated && (
+              <Button 
+                key="dashboard" 
+                onClick={() => router.push(getDashboardByRole(user!.role))}
+              >
+                Go to My Dashboard
+              </Button>
+            ),
+            !isAuthenticated && (
+              <Button 
+                key="login" 
+                onClick={() => router.push(`/auth/login?redirectTo=${encodeURIComponent(pathname || '/')}`)}
+              >
+                Login
+              </Button>
+            )
+          ]}
+        />
+      </div>
+    );
   }
   
-  // If everything is okay, render the children
-  return <>{children}</>;
+  // If access granted, render children
+  if (hasAccess) {
+    return <>{children}</>;
+  }
+  
+  // Default loading state (while redirecting)
+  return (
+    <div className="flex items-center justify-center min-h-screen">
+      <Spin size="large" />
+    </div>
+  );
+};
+
+// Create a HOC wrapper for protected pages
+export const withProtectedRoute = (
+  Component: React.ComponentType<any>,
+  options: Omit<ProtectedRouteProps, 'children'> = {}
+) => {
+  return function ProtectedComponent(props: any) {
+    return (
+      <ProtectedRoute {...options}>
+        <Component {...props} />
+      </ProtectedRoute>
+    );
+  };
 };

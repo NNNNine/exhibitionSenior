@@ -3,7 +3,7 @@ import { Card, Tag, Avatar, Button } from 'antd';
 import { EnvironmentOutlined, UserOutlined, CalendarOutlined, EyeOutlined } from '@ant-design/icons';
 import { useRouter } from 'next/navigation';
 import { Exhibition } from '@/types/exhibition.types';
-import { formatDate } from '@/utils/format';
+import { formatDate, formatImageUrl } from '@/utils/format';
 
 const { Meta } = Card;
 
@@ -68,7 +68,7 @@ const ExhibitionCard: React.FC<ExhibitionCardProps> = ({
             <Avatar 
               size="small" 
               icon={<UserOutlined />} 
-              src={exhibition.curator.profileUrl}
+              src={formatImageUrl(exhibition.curator.profileUrl)}
               className="mr-1"
             />
             <span className="text-xs text-gray-500">

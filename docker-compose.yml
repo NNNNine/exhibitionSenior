@@ -1,0 +1,60 @@
+version: '3.8'
+
+services:
+  # Database service
+  db:
+    image: postgres:13-alpine
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=exhibition_art
+    ports:
+      - "5432:5432"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Backend API service
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - DB_URL=postgres://postgres:postgres@db:5432/exhibition_art
+      - DB_PORT=5432
+      - JWT_SECRET=your_jwt_secret_key_change_me_in_production
+      - JWT_EXPIRY=24h
+      - REFRESH_TOKEN_EXPIRY=7d
+      - FRONTEND_URL=http://frontend:3000
+    ports:
+      - "3001:3000"
+    volumes:
+      - ./backend/uploads:/app/uploads
+    restart: unless-stopped
+
+  # Frontend service
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    depends_on:
+      - backend
+    environment:
+      - NODE_ENV=production
+      - NEXT_PUBLIC_API_URL=http://localhost:3001/api
+    ports:
+      - "3000:3000"
+    restart: unless-stopped
+
+volumes:
+  postgres_data:

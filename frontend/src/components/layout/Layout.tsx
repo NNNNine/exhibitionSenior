@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { Layout as AntLayout, Menu, Button, Dropdown, Avatar, Space, Drawer } from 'antd';
+import { Layout as AntLayout, Menu, Button, Dropdown, Avatar, Space, Drawer, Badge, Tooltip } from 'antd';
 import Link from 'next/link';
 import { useRouter, usePathname } from 'next/navigation';
 import {
@@ -13,7 +13,9 @@ import {
   EnvironmentOutlined,
   MenuOutlined,
   PlusOutlined,
-  DashboardOutlined
+  DashboardOutlined,
+  BellOutlined,
+  AppstoreOutlined,
 } from '@ant-design/icons';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { UserRole } from '@/types/user.types';
@@ -30,6 +32,13 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isClient, setIsClient] = useState(false);
+  const [activeExhibition, setActiveExhibition] = useState(false);
+
+  // Simulate an active exhibition notification
+  useEffect(() => {
+    // In a real app, this would come from an API call or context
+    setActiveExhibition(true);
+  }, []);
 
   // Ensure component only renders on client
   useEffect(() => {
@@ -46,64 +55,106 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     if (pathname.startsWith('/curator')) return 'curator';
     if (pathname.startsWith('/admin')) return 'admin';
     if (pathname.startsWith('/profile')) return 'profile';
+    if (pathname.startsWith('/metaverse')) return 'metaverse';
     return '';
   };
 
-  // Memoize menu items to prevent unnecessary re-renders
-  const menuItems = useMemo(() => {
-    const baseItems = [
-      {
-        key: 'home',
-        label: <Link href="/" style={{ color: '#1890ff' }}>Home</Link>,
-        icon: <HomeOutlined />,
-      },
-      {
-        key: 'artworks',
-        label: <Link href="/artworks" style={{ color: '#1890ff' }}>Artworks</Link>,
-        icon: <PictureOutlined />,
-      },
-      {
-        key: 'exhibitions',
-        label: <Link href="/exhibitions" style={{ color: '#1890ff' }}>Exhibitions</Link>,
-        icon: <EnvironmentOutlined />,
-      },
-    ];
+  // Role-specific navigation items
+  const getRoleSpecificItems = () => {
+    if (!isAuthenticated || !user) return [];
+    
+    switch (user.role) {
+      case UserRole.ARTIST:
+        return [
+          {
+            key: 'artist',
+            label: <Link href="/dashboard/artist">Artist Dashboard</Link>,
+            icon: <DashboardOutlined />,
+          },
+          {
+            key: 'upload',
+            label: <Link href="/artworks/upload">Upload Artwork</Link>,
+            icon: <PlusOutlined />,
+          }
+        ];
+      case UserRole.CURATOR:
+        return [
+          {
+            key: 'curator',
+            label: <Link href="/dashboard/curator">Curator Dashboard</Link>,
+            icon: <DashboardOutlined />,
+          },
+          {
+            key: 'create-exhibition',
+            label: <Link href="/exhibitions/create">Create Exhibition</Link>,
+            icon: <PlusOutlined />,
+          },
+          {
+            key: 'pending-approvals',
+            label: <Link href="/curator/approvals">Pending Approvals</Link>,
+            icon: <Badge count={3} size="small"><AppstoreOutlined /></Badge>,
+          }
+        ];
+      case UserRole.ADMIN:
+        return [
+          {
+            key: 'admin',
+            label: <Link href="/admin">Admin Dashboard</Link>,
+            icon: <DashboardOutlined />,
+          }
+        ];
+      default:
+        return [];
+    }
+  };
 
+  // Main navigation items (simplified for navbar)
+  const mainNavItems = useMemo(() => [
+    {
+      key: 'home',
+      label: <Link href="/">Home</Link>,
+      icon: <HomeOutlined />,
+    },
+    {
+      key: 'artworks',
+      label: <Link href="/artworks">Artworks</Link>,
+      icon: <PictureOutlined />,
+    },
+    {
+      key: 'exhibitions',
+      label: <Link href="/exhibitions">Exhibitions</Link>,
+      icon: <EnvironmentOutlined />,
+    },
+    {
+      key: 'metaverse',
+      label: (
+        <Link href="/metaverse/view">
+          <Tooltip title="Enter 3D Exhibition">
+            {activeExhibition ? (
+              <Badge status="success" dot>
+                <span>3D Exhibition</span>
+              </Badge>
+            ) : (
+              <span>3D Exhibition</span>
+            )}
+          </Tooltip>
+        </Link>
+      ),
+      icon: <EnvironmentOutlined />,
+    },
+  ], [activeExhibition]);
+  
+  // Full menu items for drawer (includes role-specific items)
+  const allMenuItems = useMemo(() => {
+    const baseItems = [...mainNavItems];
+    
     // Add role-specific items if authenticated
     if (isAuthenticated && user) {
-      if (user.role === UserRole.ARTIST) {
-        baseItems.push({
-          key: 'artist',
-          label: <Link href="/artist">Artist Dashboard</Link>,
-          icon: <DashboardOutlined />,
-        });
-        baseItems.push({
-          key: 'upload',
-          label: <Link href="/artworks/upload">Upload Artwork</Link>,
-          icon: <PlusOutlined />,
-        });
-      } else if (user.role === UserRole.CURATOR) {
-        baseItems.push({
-          key: 'curator',
-          label: <Link href="/curator">Curator Dashboard</Link>,
-          icon: <DashboardOutlined />,
-        });
-        baseItems.push({
-          key: 'create-exhibition',
-          label: <Link href="/exhibitions/create">Create Exhibition</Link>,
-          icon: <PlusOutlined />,
-        });
-      } else if (user.role === UserRole.ADMIN) {
-        baseItems.push({
-          key: 'admin',
-          label: <Link href="/admin">Admin Dashboard</Link>,
-          icon: <DashboardOutlined />,
-        });
-      }
+      return [...baseItems, ...getRoleSpecificItems()];
     }
-
+    
     return baseItems;
-  }, [isAuthenticated, user]);
+  }, [mainNavItems, isAuthenticated, user]);
 
   // User menu items
   const userMenuItems = useMemo(() => [
@@ -123,15 +174,24 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
       icon: <DashboardOutlined />,
       onClick: () => {
         if (user?.role === UserRole.ARTIST) {
-          router.push('/artist');
+          router.push('/dashboard/artist');
         } else if (user?.role === UserRole.CURATOR) {
-          router.push('/curator');
+          router.push('/dashboard/curator');
         } else if (user?.role === UserRole.ADMIN) {
-          router.push('/admin');
+          router.push('/dashboard/admin');
         } else {
           router.push('/profile');
         }
       },
+    },
+    {
+      key: 'notifications',
+      label: 'Notifications',
+      icon: <Badge count={2}><BellOutlined /></Badge>,
+      onClick: () => router.push('/notifications'),
+    },
+    {
+      type: 'divider' as const,
     },
     {
       key: 'logout',
@@ -147,13 +207,13 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   }
 
   return (
-    <AntLayout className="min-h-screen">
+    <AntLayout className="min-h-screen flex flex-col">
       {/* Header */}
-      <Header className="bg-white shadow-md flex items-center justify-between px-4 md:px-6">
+      <Header className="bg-gray-900 flex items-center justify-between px-4 md:px-6 h-16 sticky top-0 z-50">
         {/* Logo */}
         <div className="flex items-center">
           <Link href="/" className="flex items-center">
-            <h1 className="text-xl md:text-2xl font-bold text-blue-600 mr-4">
+            <h1 className="text-xl md:text-2xl font-bold text-white mr-4">
               Exhibition Art Online
             </h1>
           </Link>
@@ -161,12 +221,12 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
 
         {/* Navigation */}
         <div className="flex items-center space-x-4">
-          {/* Desktop Navigation */}
+          {/* Desktop Navigation - Simplified main items only */}
           <div className="hidden md:block">
             <Menu
               mode="horizontal"
               selectedKeys={[getSelectedKey()]}
-              items={menuItems}
+              items={mainNavItems}
               className="border-0 flex items-center"
               style={{ 
                 display: 'flex', 
@@ -174,39 +234,59 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                 justifyContent: 'center',
                 border: 'none',
                 backgroundColor: 'transparent',
+                color: 'white'
               }}
+              theme="dark"
             />
           </div>
 
           {/* User Menu / Login Button */}
-            <div className="flex items-center">
+          <div className="flex items-center">
             {isAuthenticated ? (
-              <Dropdown menu={{ items: userMenuItems }} placement="bottomRight">
-              <Button type="link" className="flex items-center">
-                <Avatar
-                size="small"
-                icon={<UserOutlined />}
-                src={user?.profileUrl}
-                className="mr-2"
-                />
-                <span className="hidden sm:inline">{user?.username}</span>
-              </Button>
-              </Dropdown>
+              <>
+                {/* Notifications for Desktop */}
+                <div className="hidden md:block mr-4">
+                  <Tooltip title="Notifications">
+                    <Badge count={2}>
+                      <Button 
+                        type="text" 
+                        icon={<BellOutlined />} 
+                        onClick={() => router.push('/notifications')}
+                        className="text-white"
+                      />
+                    </Badge>
+                  </Tooltip>
+                </div>
+                
+                {/* User Dropdown */}
+                <Dropdown menu={{ items: userMenuItems }} placement="bottomRight">
+                  <Button type="text" className="flex items-center text-white">
+                    <Avatar
+                      size="small"
+                      icon={<UserOutlined />}
+                      src={user?.profileUrl}
+                      className="mr-2"
+                    />
+                    <span className="hidden sm:inline">{user?.username}</span>
+                  </Button>
+                </Dropdown>
+              </>
             ) : (
               <Space>
-              <Button
-                type="link"
-                icon={<LoginOutlined />}
-                onClick={() => router.push('/auth/login')}
-              >
-                Log in
-              </Button>
-              <Button
-                type="primary"
-                onClick={() => router.push('/auth/register')}
-              >
-                Register
-              </Button>
+                <Button
+                  type="link"
+                  icon={<LoginOutlined />}
+                  onClick={() => router.push('/auth/login')}
+                  className="text-white"
+                >
+                  Log in
+                </Button>
+                <Button
+                  type="primary"
+                  onClick={() => router.push('/auth/register')}
+                >
+                  Register
+                </Button>
               </Space>
             )}
 
@@ -218,7 +298,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
               className="ml-2 md:hidden"
               style={{ color: '#fff' }}
             />
-            </div>
+          </div>
         </div>
       </Header>
 
@@ -234,38 +314,44 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           mode="vertical"
           selectedKeys={[getSelectedKey()]}
           items={[
-            ...menuItems, 
+            ...allMenuItems, 
             ...(isAuthenticated ? [
               { type: 'divider' as const },
               ...userMenuItems
-            ] : [])
+            ] : [
+              { type: 'divider' as const },
+              {
+                key: 'login',
+                label: 'Log in',
+                icon: <LoginOutlined />,
+                onClick: () => {
+                  router.push('/auth/login');
+                  setMobileMenuOpen(false);
+                }
+              },
+              {
+                key: 'register',
+                label: 'Register',
+                icon: <UserOutlined />,
+                onClick: () => {
+                  router.push('/auth/register');
+                  setMobileMenuOpen(false);
+                }
+              }
+            ])
           ]}
           style={{ borderRight: 0 }}
           onClick={() => setMobileMenuOpen(false)}
         />
-
-        {isAuthenticated && (
-          <>
-            <div className="p-4 border-t">
-              <p className="text-gray-500 mb-2">User Menu</p>
-              <Menu
-                mode="vertical"
-                items={userMenuItems}
-                style={{ borderRight: 0 }}
-                onClick={() => setMobileMenuOpen(false)}
-              />
-            </div>
-          </>
-        )}
       </Drawer>
 
       {/* Main Content */}
-      <Content className="bg-gray-50">
+      <Content className="bg-gray-50 flex-grow">
         {children}
       </Content>
 
       {/* Footer */}
-      <Footer className="text-center bg-gray-800 text-white py-8">
+      <Footer className="text-center bg-gray-900 text-white py-8">
         <div className="max-w-6xl mx-auto">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6 text-left">
             <div>
@@ -288,7 +374,12 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                   </Link>
                 </li>
                 <li>
-                  <Link href="/register?role=artist" className="text-gray-400 hover:text-white">
+                  <Link href="/metaverse/view" className="text-gray-400 hover:text-white">
+                    3D Exhibition
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/auth/register?role=artist" className="text-gray-400 hover:text-white">
                     Join as Artist
                   </Link>
                 </li>

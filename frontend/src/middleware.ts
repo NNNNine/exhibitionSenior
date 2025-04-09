@@ -1,70 +1,77 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
+import jwt from 'jsonwebtoken';
+import { getRouteConfig } from './config/routes';
+import { UserRole } from './types/user.types';
 
-// Define paths that require authentication
-const authenticatedPaths = [
-  '/dashboard/artist',
-  '/dashboard/curator',
-  '/dashboard/admin',
-  '/profile/edit',
-  '/artworks/upload',
-  '/artworks/edit',
-  '/exhibitions/create',
-  '/exhibitions/edit',
-];
-
-// Define role-specific paths
-const roleSpecificPaths: Record<string, string[]> = {
-  artist: ['/dashboard/artist', '/artworks/upload', '/artworks/edit'],
-  curator: ['/dashboard/curator', '/exhibitions/create', '/exhibitions/edit'],
-  admin: ['/dashboard/admin'],
+// Function to parse JWT token
+const parseToken = (token: string): { id: string; role: UserRole } | null => {
+  try {
+    // In a real app, you'd verify with the same secret used on the backend
+    // This is a simple decode for middleware (real verification happens on API calls)
+    const decoded = jwt.decode(token) as { id: string; role: UserRole };
+    return decoded;
+  } catch (error) {
+    console.error('Failed to parse JWT token:', error);
+    return null;
+  }
 };
 
 export async function middleware(request: NextRequest) {
-  // Get the pathname of the request
+  // Get the current path
   const path = request.nextUrl.pathname;
   
-  // Check if path requires authentication
-  const isAuthPath = authenticatedPaths.some(authPath => 
-    path === authPath || path.startsWith(`${authPath}/`)
-  );
+  // Check if this is a protected route
+  const routeConfig = getRouteConfig(path);
   
-  if (!isAuthPath) {
+  // If not a protected route, continue
+  if (!routeConfig) {
     return NextResponse.next();
   }
   
-  // First check cookies
-  const tokenFromCookie = request.cookies.get('token')?.value;
-  const tokenFromLocalStorage = request.headers.get('x-localstorage-token');
+  // Get token from cookies or headers
+  const token = request.cookies.get('token')?.value || 
+                request.headers.get('authorization')?.replace('Bearer ', '');
   
-  console.log(`[Middleware] Path: ${path}, Token in cookies:`, tokenFromCookie ? 'Yes' : 'No');
-  console.log(`[Middleware] Token in localStorage:`, tokenFromLocalStorage ? 'Yes' : 'No');
+  // If no token found, redirect to login with the return URL
+  if (!token) {
+    const loginUrl = new URL('/auth/login', request.url);
+    loginUrl.searchParams.set('redirectTo', encodeURIComponent(request.url));
+    
+    return NextResponse.redirect(loginUrl);
+  }
   
-  // If no token in cookies, middleware has to redirect to login
-  if (!tokenFromCookie && !tokenFromLocalStorage) {
-    console.log(`[Middleware] No token found, redirecting to login`);
-    const redirectUrl = new URL('/auth/login', request.url);
-    redirectUrl.searchParams.set('redirectTo', encodeURIComponent(request.url));
+  // Parse and verify token
+  const userData = parseToken(token);
+  
+  // If token is invalid or user data is missing, redirect to login
+  if (!userData || !userData.role) {
+    const loginUrl = new URL('/auth/login', request.url);
+    loginUrl.searchParams.set('redirectTo', encodeURIComponent(request.url));
+    
+    return NextResponse.redirect(loginUrl);
+  }
+  
+  // Check if user role has access to the requested route
+  if (!routeConfig.roles.includes(userData.role)) {
+    // Redirect to 403 page or specified redirect URL
+    const redirectUrl = new URL(routeConfig.redirectTo || '/unauthorized', request.url);
+    
     return NextResponse.redirect(redirectUrl);
   }
   
-  // For role-specific paths, we may want to check user role
-  // This would require decoding the JWT token or making an API call
-  // For this simplified middleware, we'll just check for token existence
-  
+  // User is authenticated and authorized, proceed
   return NextResponse.next();
 }
 
 // Configure paths that trigger this middleware
 export const config = {
   matcher: [
-    /*
-     * Match all paths except for:
-     * 1. /api routes
-     * 2. /_next (Next.js internals)
-     * 3. /static (static files)
-     * 4. /favicon.ico, /robots.txt (common files)
-     */
-    '/((?!api|_next|static|favicon.ico|robots.txt).*)',
+    '/dashboard/:path*',
+    '/profile/edit/:path*',
+    '/artworks/upload/:path*',
+    '/artworks/edit/:path*',
+    '/exhibitions/create/:path*',
+    '/exhibitions/edit/:path*',
   ],
 };

@@ -1,0 +1,47 @@
+# Dependencies
+node_modules/
+npm-debug.log
+yarn-error.log
+yarn-debug.log
+.pnpm-debug.log
+
+# Environment
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Build files
+dist/
+build/
+out/
+.next/
+
+# Logs
+logs/
+*.log
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Upload directory contents
+backend/uploads/*
+!backend/uploads/.gitkeep
+
+# IDE and text editors
+.idea/
+.vscode/
+*.sublime-project
+*.sublime-workspace
+*.swp
+*.swo
+
+# Coverage reports
+coverage/
+.nyc_output
+
+# Temporary files
+tmp/
+temp/

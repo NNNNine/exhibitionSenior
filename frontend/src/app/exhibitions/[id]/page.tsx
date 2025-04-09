@@ -28,7 +28,7 @@ import { useAuthContext } from '@/contexts/AuthContext';
 import { getExhibitionById, deleteExhibition } from '@/lib/api/index';
 import { Exhibition } from '@/types/exhibition.types';
 import { Artwork } from '@/types/artwork.types';
-import { formatDate } from '@/utils/format';
+import { formatDate, formatImageUrl } from '@/utils/format';
 import { UserRole } from '@/types/user.types';
 import ArtworkGrid from '@/components/artwork/ArtworkGrid';
 import UnityViewer from '@/components/metaverse/UnityViewer';
@@ -306,7 +306,7 @@ const ExhibitionDetailPage: React.FC = () => {
                 {selectedArtwork ? (
                   <div>
                     <img 
-                      src={selectedArtwork.thumbnailUrl || selectedArtwork.fileUrl} 
+                      src={formatImageUrl(selectedArtwork.thumbnailUrl || selectedArtwork.fileUrl)} 
                       alt={selectedArtwork.title}
                       className="w-full h-40 object-cover mb-4"
                     />

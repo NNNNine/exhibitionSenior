@@ -106,3 +106,20 @@ export const formatDate = (
     
     return parseFloat((bytes / Math.pow(k, i)).toFixed(decimals)) + ' ' + sizes[i];
   };
+
+/**
+ * Formats image URLs to ensure they point to the correct backend path
+ * @param url The image URL from the backend
+ * @returns A fully qualified URL for the image
+ */
+export const formatImageUrl = (url: string | undefined | null): string => {
+  if (!url) return '';
+  
+  // If URL already starts with http(s):// or data:, it's already formatted
+  if (url.startsWith('http') || url.startsWith('data:')) {
+    return url;
+  }
+  
+  // Otherwise, prepend the backend URL
+  return `${process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'http://localhost:3000'}${url}`;
+};

@@ -5,6 +5,7 @@ import React from 'react';
 import { Card, Empty, Spin, Tag } from 'antd';
 import { useRouter } from 'next/navigation';
 import { Artwork } from '@/types/artwork.types';
+import { formatImageUrl } from '@/utils/format';
 
 const { Meta } = Card;
 
@@ -74,7 +75,7 @@ const ArtworkGrid: React.FC<ArtworkGridProps> = ({
             <div className="aspect-w-1 aspect-h-1 overflow-hidden bg-gray-100">
               <img
                 alt={artwork.title}
-                src={artwork.thumbnailUrl || artwork.fileUrl}
+                src={formatImageUrl(artwork.thumbnailUrl || artwork.fileUrl)}
                 className="object-cover w-full h-full"
               />
             </div>

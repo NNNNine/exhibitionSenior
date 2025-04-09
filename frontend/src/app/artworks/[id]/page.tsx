@@ -29,7 +29,7 @@ import {
 import { useAuthContext } from '@/contexts/AuthContext';
 import { getArtworkById, deleteArtwork } from '@/lib/api/index';
 import { Artwork, Comment } from '@/types/artwork.types';
-import { formatDate } from '@/utils/format';
+import { formatDate, formatImageUrl } from '@/utils/format';
 
 const { TextArea } = Input;
 
@@ -180,7 +180,7 @@ const ArtworkDetailPage: React.FC = () => {
           <Card className="mb-6 overflow-hidden">
             <div className="flex justify-center">
               <Image
-                src={artwork.fileUrl}
+                src={formatImageUrl(artwork.fileUrl)}
                 alt={artwork.title}
                 width={600}
                 height={600}

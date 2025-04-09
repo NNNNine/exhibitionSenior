@@ -10,23 +10,18 @@ import {
   updateExhibitionItem,
   removeArtworkFromExhibition
 } from '../controllers/exhibition.controller';
-import { authenticate, authorize } from '../middlewares/auth.middleware';
+import { withAuth } from '../middlewares/auth.middleware';
 import { validate } from '../middlewares/validation.middleware';
 import { UserRole } from '../entities/User';
 
 const router = Router();
 
-// Get all exhibitions
+// Public routes
 router.get('/', getAllExhibitions);
-
-// Get exhibition by ID
 router.get('/:id', getExhibitionById);
 
-// Create new exhibition (curator only)
-router.post(
-  '/',
-  authenticate,
-  authorize([UserRole.CURATOR, UserRole.ADMIN]),
+// Protected routes - Curator or Admin only
+router.post( '/', ...withAuth([UserRole.CURATOR, UserRole.ADMIN]),
   validate([
     body('title').isLength({ min: 1, max: 100 }).withMessage('Title is required and must be under 100 characters'),
     body('description').notEmpty().withMessage('Description is required'),
@@ -36,10 +31,8 @@ router.post(
   createExhibition
 );
 
-// Update exhibition (curator or admin only)
-router.put(
-  '/:id',
-  authenticate,
+// Protected routes - Curator or Admin only
+router.put( '/:id', ...withAuth([UserRole.CURATOR, UserRole.ADMIN]),
   validate([
     param('id').isUUID().withMessage('Invalid exhibition ID'),
     body('title').optional().isLength({ min: 1, max: 100 }).withMessage('Title must be under 100 characters'),
@@ -51,14 +44,11 @@ router.put(
   updateExhibition
 );
 
-// Delete exhibition (curator or admin only)
-router.delete('/:id', authenticate, deleteExhibition);
+// Protected routes - Curator or Admin only
+router.delete('/:id', ...withAuth([UserRole.CURATOR, UserRole.ADMIN]), deleteExhibition);
 
-// Add artwork to exhibition
-router.post(
-  '/:id/items',
-  authenticate,
-  authorize([UserRole.CURATOR, UserRole.ADMIN]),
+// Protected routes - Curator or Admin only
+router.post( '/:id/items', ...withAuth([UserRole.CURATOR, UserRole.ADMIN]),
   validate([
     param('id').isUUID().withMessage('Invalid exhibition ID'),
     body('artworkId').isUUID().withMessage('Invalid artwork ID'),
@@ -70,10 +60,7 @@ router.post(
 );
 
 // Update exhibition item
-router.put(
-  '/:id/items/:itemId',
-  authenticate,
-  authorize([UserRole.CURATOR, UserRole.ADMIN]),
+router.put( '/:id/items/:itemId', ...withAuth([UserRole.CURATOR, UserRole.ADMIN]),
   validate([
     param('id').isUUID().withMessage('Invalid exhibition ID'),
     param('itemId').isUUID().withMessage('Invalid item ID'),
@@ -85,6 +72,8 @@ router.put(
 );
 
 // Remove artwork from exhibition
-router.delete('/:id/items/:itemId', authenticate, removeArtworkFromExhibition);
+router.delete('/:id/items/:itemId', ...withAuth([UserRole.CURATOR, UserRole.ADMIN]), 
+  removeArtworkFromExhibition
+);
 
 export default router;

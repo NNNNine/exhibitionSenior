@@ -21,7 +21,7 @@ export const authenticate = async (
     const authHeader = req.headers.authorization;
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
       res.status(401).json({ message: 'Authentication required' });
-      return; // Just return without calling next()
+      return;
     }
 
     // Extract and verify token
@@ -37,7 +37,7 @@ export const authenticate = async (
 
     if (!user) {
       res.status(401).json({ message: 'User not found' });
-      return; // Just return without calling next()
+      return;
     }
 
     // Attach user to request
@@ -46,7 +46,7 @@ export const authenticate = async (
   } catch (error) {
     if (error instanceof jwt.JsonWebTokenError) {
       res.status(401).json({ message: 'Invalid token' });
-      return; // Just return without calling next()
+      return;
     }
     next(error);
   }
@@ -54,20 +54,38 @@ export const authenticate = async (
 
 /**
  * Middleware to check if user has required role
+ * This enhanced version allows an array of roles and provides better error handling
  * @param roles Array of allowed roles
  */
 export const authorize = (roles: UserRole[]) => {
   return (req: AuthRequest, res: Response, next: NextFunction): void => {
     if (!req.user) {
       res.status(401).json({ message: 'Authentication required' });
-      return; // Just return without calling next()
+      return;
     }
 
     if (!roles.includes(req.user.role)) {
-      res.status(403).json({ message: 'Access denied' });
-      return; // Just return without calling next()
+      res.status(403).json({ 
+        message: 'Access denied',
+        error: `This action requires one of these roles: ${roles.join(', ')}`,
+        requiredRoles: roles,
+        currentRole: req.user.role
+      });
+      return;
     }
 
     next();
   };
+};
+
+/**
+ * Middleware factory that combines authentication and authorization
+ * Useful for protecting API routes with role-based access control
+ * @param roles Array of allowed roles
+ */
+export const withAuth = (roles: UserRole[] = []) => {
+  return [
+    authenticate,
+    ...(roles.length > 0 ? [authorize(roles)] : [])
+  ];
 };

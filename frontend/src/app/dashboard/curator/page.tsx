@@ -170,125 +170,123 @@ const CuratorDashboard: React.FC = () => {
   ];
 
   return (
-    <ProtectedRoute requiredRoles={[UserRole.CURATOR, UserRole.ADMIN]}>
-      <div className="p-6 max-w-7xl mx-auto">
-        <h1 className="text-2xl font-bold mb-6">Curator Dashboard</h1>
-        
-        {/* Statistics Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-          <Card>
-            <Statistic 
-              title="Total Exhibitions" 
-              value={stats.totalExhibitions} 
-              prefix={<EnvironmentOutlined />} 
-            />
-          </Card>
-          <Card>
-            <Statistic 
-              title="Active Exhibitions" 
-              value={stats.activeExhibitions} 
-              prefix={<EnvironmentOutlined />} 
-            />
-          </Card>
-          <Card>
-            <Statistic 
-              title="Pending Approval" 
-              value={stats.pendingApproval} 
-              prefix={<PlusOutlined />} 
-            />
-          </Card>
-          <Card>
-            <Statistic 
-              title="Total Artworks" 
-              value={stats.totalArtworks} 
-              prefix={<PlusOutlined />} 
-            />
-          </Card>
-        </div>
-        
-        {/* Quick Actions */}
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="text-xl font-semibold">Quick Actions</h2>
-          <div className="space-x-4">
-            <Button 
-              type="primary" 
-              icon={<PlusOutlined />} 
-              onClick={() => router.push('/exhibitions/create')}
-            >
-              Create New Exhibition
-            </Button>
-            <Button 
-              onClick={() => router.push('/profile/edit')}
-            >
-              Edit Profile
-            </Button>
-          </div>
-        </div>
-        
-        {/* Tabs for different views */}
-        <Card className="mt-6">
-          <Tabs 
-            defaultActiveKey="exhibitions"
-            items={[
-              {
-                key: 'exhibitions',
-                label: 'My Exhibitions',
-                children: (
-                  loading ? (
-                    <div className="flex justify-center py-10">
-                      <Spin size="large" />
-                    </div>
-                  ) : (
-                    <ExhibitionGrid 
-                      exhibitions={exhibitions} 
-                      columns={3}
-                      showCurator={false}
-                      emptyText="You haven't created any exhibitions yet"
-                    />
-                  )
-                )
-              },
-              {
-                key: 'pending',
-                label: 'Pending Approvals',
-                children: (
-                  loading ? (
-                    <div className="flex justify-center py-10">
-                      <Spin size="large" />
-                    </div>
-                  ) : (
-                    <Table 
-                      dataSource={pendingArtworks}
-                      columns={pendingColumns}
-                      rowKey="id"
-                      pagination={false}
-                    />
-                  )
-                )
-              },
-              {
-                key: 'active',
-                label: 'Active Exhibitions',
-                children: (
-                  loading ? (
-                    <div className="flex justify-center py-10">
-                      <Spin size="large" />
-                    </div>
-                  ) : (
-                    <ExhibitionGrid 
-                      exhibitions={exhibitions.filter(ex => ex.isActive)} 
-                      columns={3}
-                      showCurator={false}
-                      emptyText="You don't have any active exhibitions"
-                    />
-                  )
-                )
-              }
-            ]}
+    <div className="p-6 max-w-7xl mx-auto">
+      <h1 className="text-2xl font-bold mb-6">Curator Dashboard</h1>
+      
+      {/* Statistics Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        <Card>
+          <Statistic 
+            title="Total Exhibitions" 
+            value={stats.totalExhibitions} 
+            prefix={<EnvironmentOutlined />} 
+          />
+        </Card>
+        <Card>
+          <Statistic 
+            title="Active Exhibitions" 
+            value={stats.activeExhibitions} 
+            prefix={<EnvironmentOutlined />} 
+          />
+        </Card>
+        <Card>
+          <Statistic 
+            title="Pending Approval" 
+            value={stats.pendingApproval} 
+            prefix={<PlusOutlined />} 
+          />
+        </Card>
+        <Card>
+          <Statistic 
+            title="Total Artworks" 
+            value={stats.totalArtworks} 
+            prefix={<PlusOutlined />} 
           />
         </Card>
       </div>
-    </ProtectedRoute>
+      
+      {/* Quick Actions */}
+      <div className="flex justify-between items-center mb-6">
+        <h2 className="text-xl font-semibold">Quick Actions</h2>
+        <div className="space-x-4">
+          <Button 
+            type="primary" 
+            icon={<PlusOutlined />} 
+            onClick={() => router.push('/exhibitions/create')}
+          >
+            Create New Exhibition
+          </Button>
+          <Button 
+            onClick={() => router.push('/profile/edit')}
+          >
+            Edit Profile
+          </Button>
+        </div>
+      </div>
+      
+      {/* Tabs for different views */}
+      <Card className="mt-6">
+        <Tabs 
+          defaultActiveKey="exhibitions"
+          items={[
+            {
+              key: 'exhibitions',
+              label: 'My Exhibitions',
+              children: (
+                loading ? (
+                  <div className="flex justify-center py-10">
+                    <Spin size="large" />
+                  </div>
+                ) : (
+                  <ExhibitionGrid 
+                    exhibitions={exhibitions} 
+                    columns={3}
+                    showCurator={false}
+                    emptyText="You haven't created any exhibitions yet"
+                  />
+                )
+              )
+            },
+            {
+              key: 'pending',
+              label: 'Pending Approvals',
+              children: (
+                loading ? (
+                  <div className="flex justify-center py-10">
+                    <Spin size="large" />
+                  </div>
+                ) : (
+                  <Table 
+                    dataSource={pendingArtworks}
+                    columns={pendingColumns}
+                    rowKey="id"
+                    pagination={false}
+                  />
+                )
+              )
+            },
+            {
+              key: 'active',
+              label: 'Active Exhibitions',
+              children: (
+                loading ? (
+                  <div className="flex justify-center py-10">
+                    <Spin size="large" />
+                  </div>
+                ) : (
+                  <ExhibitionGrid 
+                    exhibitions={exhibitions.filter(ex => ex.isActive)} 
+                    columns={3}
+                    showCurator={false}
+                    emptyText="You don't have any active exhibitions"
+                  />
+                )
+              )
+            }
+          ]}
+        />
+      </Card>
+    </div>
   );
 };
 

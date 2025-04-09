@@ -8,30 +8,23 @@ import {
   deleteUser,
   getUserArtworks
 } from '../controllers/user.controller';
-import { authenticate, authorize } from '../middlewares/auth.middleware';
+import { withAuth } from '../middlewares/auth.middleware';
 import { validate } from '../middlewares/validation.middleware';
 import { UserRole } from '../entities/User';
 
 const router = Router();
 
-// Get all users (admin only)
-router.get(
-  '/', 
-  authenticate, 
-  authorize([UserRole.ADMIN]), 
+// Admin-only route
+router.get('/', ...withAuth([UserRole.ADMIN]), 
   getAllUsers
 );
 
-// Get user by ID
+// Public route
 router.get('/:id', getUserById);
-
-// Get user by username
 router.get('/username/:username', getUserByUsername);
 
-// Update user
-router.put(
-  '/:id',
-  authenticate,
+// Self or Admin route (controller will check if user can update this profile)
+router.put('/:id', ...withAuth(),  // Any authenticated user can try (controller will verify rights)
   validate([
     param('id').isUUID().withMessage('Invalid user ID'),
     body('username').optional().isLength({ min: 3, max: 50 }).withMessage('Username must be between 3 and 50 characters'),
@@ -42,18 +35,15 @@ router.put(
   updateUser
 );
 
-// Delete user (admin only)
-router.delete(
-  '/:id',
-  authenticate,
-  authorize([UserRole.ADMIN]),
+// Admin-only route
+router.delete('/:id', ...withAuth([UserRole.ADMIN]),
   validate([
     param('id').isUUID().withMessage('Invalid user ID')
   ]),
   deleteUser
 );
 
-// Get user artworks
+// Public route
 router.get('/artworks/:userId', getUserArtworks);
 
 export default router;

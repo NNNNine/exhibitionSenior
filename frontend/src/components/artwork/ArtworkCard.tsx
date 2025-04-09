@@ -5,6 +5,7 @@ import { motion } from 'framer-motion';
 import Image from 'next/image';
 import Link from 'next/link';
 import { formatDistanceToNow } from 'date-fns';
+import { formatImageUrl } from '@/utils/format';
 import { EyeOutlined, HeartOutlined, HeartFilled, CommentOutlined } from '@ant-design/icons';
 import { Artwork, ArtworkWithLikes } from '@/types/artwork.types';
 
@@ -44,7 +45,7 @@ const ArtworkCard: React.FC<ArtworkCardProps> = ({ artwork, onLikeClick }) => {
   };
 
   // Generate a placeholder if image is not available
-  const imageUrl = thumbnailUrl || `https://placehold.co/300x300?text=${encodeURIComponent(title)}`;
+  const imageUrl = formatImageUrl(thumbnailUrl) || `https://placehold.co/300x300?text=${encodeURIComponent(title)}`;
 
   return (
     <motion.div

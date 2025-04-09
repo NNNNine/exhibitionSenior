@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { Card, Tabs, Button, Statistic, Table, Tag, message, Spin, Modal, Form, Input, Select, Alert, Badge, Popconfirm } from 'antd';
 import { UserOutlined, EnvironmentOutlined, PictureOutlined, DeleteOutlined, EditOutlined, LockOutlined, InfoCircleOutlined, ExclamationCircleOutlined, CheckCircleOutlined, StopOutlined } from '@ant-design/icons';
 import { useRouter } from 'next/navigation';
-import { ProtectedRoute } from '@/contexts/AuthContext';
+import { withProtectedRoute } from '@/contexts/AuthContext';
 import { UserRole, User } from '@/types/user.types';
 import { getUsers, getArtworks, getExhibitions, updateUser, deleteUser } from '@/lib/api/index';
 import { formatDate } from '@/utils/format';
@@ -430,257 +430,258 @@ const AdminDashboard: React.FC = () => {
   ];
 
   return (
-    <ProtectedRoute requiredRoles={[UserRole.ADMIN]}>
-      <div className="p-6 max-w-7xl mx-auto">
-        <h1 className="text-2xl font-bold mb-6">Admin Dashboard</h1>
-        
-        {/* Statistics Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
-          <Card>
-            <Statistic 
-              title="Total Users" 
-              value={stats.totalUsers} 
-              prefix={<UserOutlined />} 
-            />
-          </Card>
-          <Card>
-            <Statistic 
-              title="Artists" 
-              value={stats.totalArtists} 
-              prefix={<UserOutlined />} 
-            />
-          </Card>
-          <Card>
-            <Statistic 
-              title="Curators" 
-              value={stats.totalCurators} 
-              prefix={<UserOutlined />} 
-            />
-          </Card>
-          <Card>
-            <Statistic 
-              title="Visitors" 
-              value={stats.totalVisitors} 
-              prefix={<UserOutlined />} 
-            />
-          </Card>
-          <Card>
-            <Statistic 
-              title="Artworks" 
-              value={stats.totalArtworks} 
-              prefix={<PictureOutlined />} 
-            />
-          </Card>
-          <Card>
-            <Statistic 
-              title="Exhibitions" 
-              value={stats.totalExhibitions} 
-              prefix={<EnvironmentOutlined />} 
-            />
-          </Card>
-        </div>
-        
-        {/* Tabs for different management functions */}
-        <Tabs 
-          defaultActiveKey="users"
-          items={[
-            {
-              key: 'users',
-              label: 'User Management',
-              children: (
-                <Card>
-                  {loading ? (
-                    <div className="flex justify-center py-10">
-                      <Spin size="large" />
-                    </div>
-                  ) : (
-                    <Table 
-                      dataSource={users}
-                      columns={userColumns}
-                      rowKey="id"
-                      pagination={{ pageSize: 10 }}
-                    />
-                  )}
-                </Card>
-              )
-            },
-            {
-              key: 'artworks',
-              label: 'Artwork Management',
-              children: (
-                <Card>
-                  {loading ? (
-                    <div className="flex justify-center py-10">
-                      <Spin size="large" />
-                    </div>
-                  ) : (
-                    <Table 
-                      dataSource={artworks}
-                      columns={artworkColumns}
-                      rowKey="id"
-                      pagination={{ pageSize: 10 }}
-                    />
-                  )}
-                </Card>
-              )
-            },
-            {
-              key: 'exhibitions',
-              label: 'Exhibition Management',
-              children: (
-                <Card>
-                  {loading ? (
-                    <div className="flex justify-center py-10">
-                      <Spin size="large" />
-                    </div>
-                  ) : (
-                    <Table 
-                      dataSource={exhibitions}
-                      columns={exhibitionColumns}
-                      rowKey="id"
-                      pagination={{ pageSize: 10 }}
-                    />
-                  )}
-                </Card>
-              )
-            },
-            {
-              key: 'settings',
-              label: 'System Settings',
-              children: (
-                <>
-                  <Card title="System Configuration">
-                    <Form layout="vertical">
-                      <Form.Item label="Exhibition Default Duration (days)" name="exhibitionDuration">
-                        <Input type="number" defaultValue={30} />
-                      </Form.Item>
-                      
-                      <Form.Item label="Maximum Upload Size (MB)" name="maxUploadSize">
-                        <Input type="number" defaultValue={10} />
-                      </Form.Item>
-                      
-                      <Form.Item label="Allowed File Types" name="allowedFileTypes">
-                        <Select mode="multiple" defaultValue={['jpg', 'png', 'tiff']}>
-                          <Option value="jpg">JPG</Option>
-                          <Option value="png">PNG</Option>
-                          <Option value="tiff">TIFF</Option>
-                          <Option value="gif">GIF</Option>
-                          <Option value="webp">WEBP</Option>
-                        </Select>
-                      </Form.Item>
-                      
-                      <Form.Item label="Enable User Registration" name="enableRegistration" valuePropName="checked">
-                        <Select defaultValue="all">
-                          <Option value="all">All Roles</Option>
-                          <Option value="visitors">Visitors Only</Option>
-                          <Option value="artists">Artists and Visitors</Option>
-                          <Option value="none">Disabled (Admin Only)</Option>
-                        </Select>
-                      </Form.Item>
-                      
-                      <Form.Item label="Maintenance Mode" name="maintenanceMode" valuePropName="checked">
-                        <Select defaultValue="off">
-                          <Option value="off">Off</Option>
-                          <Option value="scheduled">Scheduled</Option>
-                          <Option value="on">On (Admin Access Only)</Option>
-                        </Select>
-                      </Form.Item>
-                      
-                      <Button type="primary">Save Settings</Button>
-                    </Form>
-                  </Card>
-                  
-                  <Card title="Advanced Settings" className="mt-6">
-                    <Button className="mr-4" onClick={() => message.info('Database backup would start here')}>
-                      Database Backup
-                    </Button>
-                    <Button className="mr-4" onClick={() => message.info('System logs would be shown here')}>
-                      View System Logs
-                    </Button>
-                    <Button danger onClick={() => {
-                      Modal.confirm({
-                        title: 'Clear All Cache',
-                        content: 'Are you sure you want to clear all system cache? This may temporarily slow down the system.',
-                        onOk: () => message.success('Cache cleared successfully')
-                      });
-                    }}>
-                      Clear Cache
-                    </Button>
-                  </Card>
-                </>
-              )
-            }
-          ]}
-        />
-        
-        {/* User Edit Modal */}
-        <Modal
-          title="Edit User"
-          open={editModalVisible}
-          onCancel={() => setEditModalVisible(false)}
-          footer={null}
-        >
-          <Form
-            form={form}
-            layout="vertical"
-            onFinish={handleEditSubmit}
-          >
-            <Form.Item
-              name="username"
-              label="Username"
-              rules={[
-                { required: true, message: 'Please input username!' },
-                { min: 3, message: 'Username must be at least 3 characters' }
-              ]}
-            >
-              <Input prefix={<UserOutlined />} />
-            </Form.Item>
-            
-            <Form.Item
-              name="email"
-              label="Email"
-              rules={[
-                { required: true, message: 'Please input email!' },
-                { type: 'email', message: 'Please enter a valid email' }
-              ]}
-            >
-              <Input />
-            </Form.Item>
-            
-            <Form.Item
-              name="role"
-              label="Role"
-              rules={[{ required: true, message: 'Please select role!' }]}
-            >
-              <Select>
-                <Option value={UserRole.VISITOR}>Visitor</Option>
-                <Option value={UserRole.ARTIST}>Artist</Option>
-                <Option value={UserRole.CURATOR}>Curator</Option>
-                <Option value={UserRole.ADMIN}>Admin</Option>
-              </Select>
-            </Form.Item>
-            
-            <Alert
-              message="Note on Role Changes"
-              description="Changing a user's role will affect their permissions and access throughout the system."
-              type="warning"
-              showIcon
-              className="mb-4"
-            />
-            
-            <div className="flex justify-end">
-              <Button onClick={() => setEditModalVisible(false)} className="mr-2">
-                Cancel
-              </Button>
-              <Button type="primary" htmlType="submit" loading={loading}>
-                Save Changes
-              </Button>
-            </div>
-          </Form>
-        </Modal>
+    <div className="p-6 max-w-7xl mx-auto">
+      <h1 className="text-2xl font-bold mb-6">Admin Dashboard</h1>
+      
+      {/* Statistics Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
+        <Card>
+          <Statistic 
+            title="Total Users" 
+            value={stats.totalUsers} 
+            prefix={<UserOutlined />} 
+          />
+        </Card>
+        <Card>
+          <Statistic 
+            title="Artists" 
+            value={stats.totalArtists} 
+            prefix={<UserOutlined />} 
+          />
+        </Card>
+        <Card>
+          <Statistic 
+            title="Curators" 
+            value={stats.totalCurators} 
+            prefix={<UserOutlined />} 
+          />
+        </Card>
+        <Card>
+          <Statistic 
+            title="Visitors" 
+            value={stats.totalVisitors} 
+            prefix={<UserOutlined />} 
+          />
+        </Card>
+        <Card>
+          <Statistic 
+            title="Artworks" 
+            value={stats.totalArtworks} 
+            prefix={<PictureOutlined />} 
+          />
+        </Card>
+        <Card>
+          <Statistic 
+            title="Exhibitions" 
+            value={stats.totalExhibitions} 
+            prefix={<EnvironmentOutlined />} 
+          />
+        </Card>
       </div>
-    </ProtectedRoute>
+      
+      {/* Tabs for different management functions */}
+      <Tabs 
+        defaultActiveKey="users"
+        items={[
+          {
+            key: 'users',
+            label: 'User Management',
+            children: (
+              <Card>
+                {loading ? (
+                  <div className="flex justify-center py-10">
+                    <Spin size="large" />
+                  </div>
+                ) : (
+                  <Table 
+                    dataSource={users}
+                    columns={userColumns}
+                    rowKey="id"
+                    pagination={{ pageSize: 10 }}
+                  />
+                )}
+              </Card>
+            )
+          },
+          {
+            key: 'artworks',
+            label: 'Artwork Management',
+            children: (
+              <Card>
+                {loading ? (
+                  <div className="flex justify-center py-10">
+                    <Spin size="large" />
+                  </div>
+                ) : (
+                  <Table 
+                    dataSource={artworks}
+                    columns={artworkColumns}
+                    rowKey="id"
+                    pagination={{ pageSize: 10 }}
+                  />
+                )}
+              </Card>
+            )
+          },
+          {
+            key: 'exhibitions',
+            label: 'Exhibition Management',
+            children: (
+              <Card>
+                {loading ? (
+                  <div className="flex justify-center py-10">
+                    <Spin size="large" />
+                  </div>
+                ) : (
+                  <Table 
+                    dataSource={exhibitions}
+                    columns={exhibitionColumns}
+                    rowKey="id"
+                    pagination={{ pageSize: 10 }}
+                  />
+                )}
+              </Card>
+            )
+          },
+          {
+            key: 'settings',
+            label: 'System Settings',
+            children: (
+              <>
+                <Card title="System Configuration">
+                  <Form layout="vertical">
+                    <Form.Item label="Exhibition Default Duration (days)" name="exhibitionDuration">
+                      <Input type="number" defaultValue={30} />
+                    </Form.Item>
+                    
+                    <Form.Item label="Maximum Upload Size (MB)" name="maxUploadSize">
+                      <Input type="number" defaultValue={10} />
+                    </Form.Item>
+                    
+                    <Form.Item label="Allowed File Types" name="allowedFileTypes">
+                      <Select mode="multiple" defaultValue={['jpg', 'png', 'tiff']}>
+                        <Option value="jpg">JPG</Option>
+                        <Option value="png">PNG</Option>
+                        <Option value="tiff">TIFF</Option>
+                        <Option value="gif">GIF</Option>
+                        <Option value="webp">WEBP</Option>
+                      </Select>
+                    </Form.Item>
+                    
+                    <Form.Item label="Enable User Registration" name="enableRegistration" valuePropName="checked">
+                      <Select defaultValue="all">
+                        <Option value="all">All Roles</Option>
+                        <Option value="visitors">Visitors Only</Option>
+                        <Option value="artists">Artists and Visitors</Option>
+                        <Option value="none">Disabled (Admin Only)</Option>
+                      </Select>
+                    </Form.Item>
+                    
+                    <Form.Item label="Maintenance Mode" name="maintenanceMode" valuePropName="checked">
+                      <Select defaultValue="off">
+                        <Option value="off">Off</Option>
+                        <Option value="scheduled">Scheduled</Option>
+                        <Option value="on">On (Admin Access Only)</Option>
+                      </Select>
+                    </Form.Item>
+                    
+                    <Button type="primary">Save Settings</Button>
+                  </Form>
+                </Card>
+                
+                <Card title="Advanced Settings" className="mt-6">
+                  <Button className="mr-4" onClick={() => message.info('Database backup would start here')}>
+                    Database Backup
+                  </Button>
+                  <Button className="mr-4" onClick={() => message.info('System logs would be shown here')}>
+                    View System Logs
+                  </Button>
+                  <Button danger onClick={() => {
+                    Modal.confirm({
+                      title: 'Clear All Cache',
+                      content: 'Are you sure you want to clear all system cache? This may temporarily slow down the system.',
+                      onOk: () => message.success('Cache cleared successfully')
+                    });
+                  }}>
+                    Clear Cache
+                  </Button>
+                </Card>
+              </>
+            )
+          }
+        ]}
+      />
+      
+      {/* User Edit Modal */}
+      <Modal
+        title="Edit User"
+        open={editModalVisible}
+        onCancel={() => setEditModalVisible(false)}
+        footer={null}
+      >
+        <Form
+          form={form}
+          layout="vertical"
+          onFinish={handleEditSubmit}
+        >
+          <Form.Item
+            name="username"
+            label="Username"
+            rules={[
+              { required: true, message: 'Please input username!' },
+              { min: 3, message: 'Username must be at least 3 characters' }
+            ]}
+          >
+            <Input prefix={<UserOutlined />} />
+          </Form.Item>
+          
+          <Form.Item
+            name="email"
+            label="Email"
+            rules={[
+              { required: true, message: 'Please input email!' },
+              { type: 'email', message: 'Please enter a valid email' }
+            ]}
+          >
+            <Input />
+          </Form.Item>
+          
+          <Form.Item
+            name="role"
+            label="Role"
+            rules={[{ required: true, message: 'Please select role!' }]}
+          >
+            <Select>
+              <Option value={UserRole.VISITOR}>Visitor</Option>
+              <Option value={UserRole.ARTIST}>Artist</Option>
+              <Option value={UserRole.CURATOR}>Curator</Option>
+              <Option value={UserRole.ADMIN}>Admin</Option>
+            </Select>
+          </Form.Item>
+          
+          <Alert
+            message="Note on Role Changes"
+            description="Changing a user's role will affect their permissions and access throughout the system."
+            type="warning"
+            showIcon
+            className="mb-4"
+          />
+          
+          <div className="flex justify-end">
+            <Button onClick={() => setEditModalVisible(false)} className="mr-2">
+              Cancel
+            </Button>
+            <Button type="primary" htmlType="submit" loading={loading}>
+              Save Changes
+            </Button>
+          </div>
+        </Form>
+      </Modal>
+    </div>
   );
 };
 
-export default AdminDashboard;
+export default withProtectedRoute(AdminDashboard, {
+  requiredRoles: [UserRole.ADMIN],
+  redirectTo: '/unauthorized',
+});

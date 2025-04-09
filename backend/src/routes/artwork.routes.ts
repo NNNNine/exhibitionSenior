@@ -8,25 +8,19 @@ import {
   deleteArtwork
 } from '../controllers/artwork.controller';
 
-import { authenticate, authorize } from '../middlewares/auth.middleware';
+import { withAuth } from '../middlewares/auth.middleware';
 import { upload } from '../middlewares/upload.middleware';
 import { validate } from '../middlewares/validation.middleware';
 import { UserRole } from '../entities/User';
 
 const router = Router();
 
-// Get all artworks
+// Public routes
 router.get('/', getAllArtworks);
-
-// Get artwork by ID
 router.get('/:id', getArtworkById);
 
-// Create new artwork (artist only)
-router.post(
-  '/',
-  authenticate,
-  authorize([UserRole.ARTIST]),
-  upload.single('image'),
+// Protected routes - Artist only
+router.post('/', ...withAuth([UserRole.ARTIST]), upload.single('image'),
   validate([
     body('title').isLength({ min: 1, max: 100 }).withMessage('Title is required and must be under 100 characters'),
     body('description').notEmpty().withMessage('Description is required'),
@@ -36,11 +30,8 @@ router.post(
   createArtwork
 );
 
-// Update artwork (artist or admin only)
-router.put(
-  '/:id',
-  authenticate,
-  upload.single('image'),
+// Protected routes - Artist or Admin only
+router.put('/:id', ...withAuth([UserRole.ARTIST, UserRole.ADMIN]), upload.single('image'),
   validate([
     body('title').optional().isLength({ min: 1, max: 100 }).withMessage('Title must be under 100 characters'),
     body('description').optional(),
@@ -50,7 +41,9 @@ router.put(
   updateArtwork
 );
 
-// Delete artwork (artist or admin only)
-router.delete('/:id', authenticate, deleteArtwork);
+// Protected routes - Artist or Admin only
+router.delete('/:id', ...withAuth([UserRole.ARTIST, UserRole.ADMIN]), 
+  deleteArtwork
+);
 
 export default router;
