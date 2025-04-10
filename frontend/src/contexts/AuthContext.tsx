@@ -95,12 +95,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       setUser(user);
       
       // Redirect based on user role or to the requested page
-      const redirectTo = new URLSearchParams(window.location.search).get('redirectTo');
-      if (redirectTo) {
-        router.push(decodeURIComponent(redirectTo));
-      } else {
-        redirectUserBasedOnRole(user.role);
-      }
+      redirectUserBasedOnRole(user.role);
     } catch (err: any) {
       setError(err.message);
       throw err;

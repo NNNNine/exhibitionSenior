@@ -18,6 +18,7 @@ import {
   AppstoreOutlined,
 } from '@ant-design/icons';
 import { useAuthContext } from '@/contexts/AuthContext';
+import NotificationDropdown from '@/components/notification/NotificationDropdown';
 import { UserRole } from '@/types/user.types';
 
 const { Header, Content, Footer } = AntLayout;
@@ -244,18 +245,9 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           <div className="flex items-center">
             {isAuthenticated ? (
               <>
-                {/* Notifications for Desktop */}
+                {/* Notifications Dropdown */}
                 <div className="hidden md:block mr-4">
-                  <Tooltip title="Notifications">
-                    <Badge count={2}>
-                      <Button 
-                        type="text" 
-                        icon={<BellOutlined />} 
-                        onClick={() => router.push('/notifications')}
-                        className="text-white"
-                      />
-                    </Badge>
-                  </Tooltip>
+                  <NotificationDropdown />
                 </div>
                 
                 {/* User Dropdown */}

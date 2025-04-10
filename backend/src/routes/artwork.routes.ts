@@ -5,7 +5,9 @@ import {
   getArtworkById,
   createArtwork,
   updateArtwork,
-  deleteArtwork
+  deleteArtwork,
+  approveArtwork,
+  rejectArtwork
 } from '../controllers/artwork.controller';
 
 import { withAuth } from '../middlewares/auth.middleware';
@@ -44,6 +46,14 @@ router.put('/:id', ...withAuth([UserRole.ARTIST, UserRole.ADMIN]), upload.single
 // Protected routes - Artist or Admin only
 router.delete('/:id', ...withAuth([UserRole.ARTIST, UserRole.ADMIN]), 
   deleteArtwork
+);
+
+// Protected routes - Curator or Admin only
+router.patch('/:id/approve', ...withAuth([UserRole.CURATOR, UserRole.ADMIN]),
+  approveArtwork
+);
+router.patch('/:id/reject', ...withAuth([UserRole.CURATOR, UserRole.ADMIN]),
+  rejectArtwork
 );
 
 export default router;

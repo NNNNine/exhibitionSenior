@@ -1,4 +1,11 @@
+// src/types/artwork.types.ts
 import { User } from './user.types';
+
+export enum ArtworkStatus {
+  PENDING = 'pending',
+  APPROVED = 'approved',
+  REJECTED = 'rejected'
+}
 
 /**
  * Artwork interface - represents an artwork in the system
@@ -14,6 +21,7 @@ export interface Artwork {
   category: string;
   tags: string[];
   creationDate: string;
+  status: ArtworkStatus;
   comments?: Comment[];
   exhibitionItems?: ExhibitionItem[];
   createdAt: string;
@@ -93,5 +101,6 @@ export interface ArtworkUpdateData {
   description?: string;
   category?: string;
   tags?: string[];
+  status?: ArtworkStatus;
   image?: File;
 }

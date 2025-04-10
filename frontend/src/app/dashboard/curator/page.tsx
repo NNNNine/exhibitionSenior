@@ -1,19 +1,23 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Card, Tabs, Button, Statistic, Table, Tag, message, Spin, Modal, Tooltip } from 'antd';
-import { EnvironmentOutlined, PlusOutlined, CheckCircleOutlined, CloseCircleOutlined, EyeOutlined, EditOutlined } from '@ant-design/icons';
+import { Card, Tabs, Button, Statistic, Table, Tag, message, Spin, Modal, Tooltip, Badge, Alert, Drawer, List, Avatar, Empty, Space, Image } from 'antd';
+import { EnvironmentOutlined, PlusOutlined, CheckCircleOutlined, CloseCircleOutlined, EyeOutlined, EditOutlined, BellOutlined, PictureOutlined } from '@ant-design/icons';
 import { useRouter } from 'next/navigation';
-import { ProtectedRoute } from '@/contexts/AuthContext';
+import { withProtectedRoute } from '@/contexts/AuthContext';
 import { UserRole } from '@/types/user.types';
 import { getExhibitions, getArtworks } from '@/lib/api/index';
+import { useNotifications } from '@/contexts/NotificationContext';
 import ExhibitionGrid from '@/components/exhibition/ExhibitionGrid';
 import { Exhibition } from '@/types/exhibition.types';
 import { Artwork } from '@/types/artwork.types';
 import { formatDate } from '@/utils/format';
+import { getSocketClient, authenticateSocket } from '@/lib/socketClient';
 
 const CuratorDashboard: React.FC = () => {
   const router = useRouter();
+  const { notifications, unreadCount, markAsRead } = useNotifications();
+  
   const [exhibitions, setExhibitions] = useState<Exhibition[]>([]);
   const [pendingArtworks, setPendingArtworks] = useState<Artwork[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -23,6 +27,12 @@ const CuratorDashboard: React.FC = () => {
     pendingApproval: 0,
     totalArtworks: 0,
   });
+  
+  // State for notification drawer
+  const [notificationDrawerOpen, setNotificationDrawerOpen] = useState(false);
+  
+  // State for new artwork notifications
+  const [newArtworkNotifications, setNewArtworkNotifications] = useState<any[]>([]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -63,7 +73,53 @@ const CuratorDashboard: React.FC = () => {
     };
 
     fetchData();
-  }, []);
+    
+    // Set up Socket.IO for real-time notifications
+    const socket = getSocketClient();
+    authenticateSocket(crypto.randomUUID(), UserRole.CURATOR); // This would use actual user ID
+    
+    // Listen for new artwork uploads
+    socket.on('new-artwork', (data) => {
+      console.log('New artwork notification received:', data);
+      
+      // Show toast notification
+      message.info({
+        content: `${data.artist} uploaded a new artwork: "${data.title}"`,
+        duration: 5,
+        onClick: () => {
+          router.push(`/artworks/${data.id}`);
+        }
+      });
+      
+      // Add to new artwork notifications list
+      setNewArtworkNotifications(prev => [
+        {
+          id: data.id,
+          title: data.title,
+          artist: data.artist,
+          thumbnailUrl: data.thumbnailUrl,
+          timestamp: new Date().toISOString()
+        },
+        ...prev
+      ]);
+      
+      // Update pending approval count
+      setStats(prev => ({
+        ...prev,
+        pendingApproval: prev.pendingApproval + 1
+      }));
+    });
+    
+    // Clean up socket connection on unmount
+    return () => {
+      socket.off('new-artwork');
+    };
+  }, [router]);
+  
+  // Filter notifications to show only artwork upload notifications
+  const artworkUploadNotifications = notifications.filter(
+    notification => notification.type === 'artwork_upload'
+  );
 
   // Mock function to handle artwork approval
   const handleApproveArtwork = (artwork: Artwork) => {
@@ -106,7 +162,7 @@ const CuratorDashboard: React.FC = () => {
       dataIndex: 'thumbnailUrl',
       key: 'thumbnailUrl',
       render: (text: string, record: Artwork) => (
-        <img 
+        <Image 
           src={text || `https://placehold.co/100x100?text=${encodeURIComponent(record.title)}`} 
           alt={record.title} 
           style={{ width: 60, height: 60, objectFit: 'cover' }} 
@@ -169,9 +225,46 @@ const CuratorDashboard: React.FC = () => {
     },
   ];
 
+  // Handle notification click
+  const handleNotificationClick = async (notification: any) => {
+    // Mark as read
+    if (!notification.isRead) {
+      await markAsRead(notification.id);
+    }
+    
+    // Navigate to artwork
+    if (notification.entityId) {
+      router.push(`/artworks/${notification.entityId}`);
+    }
+  };
+
   return (
     <div className="p-6 max-w-7xl mx-auto">
       <h1 className="text-2xl font-bold mb-6">Curator Dashboard</h1>
+      
+      {/* Real-time notification banner */}
+      {unreadCount > 0 && (
+        <Alert
+          message={
+            <div className="flex items-center justify-between">
+              <div>
+                <Badge count={unreadCount} className="mr-2" />
+                You have {unreadCount} new notification{unreadCount > 1 ? 's' : ''}
+              </div>
+              <Button 
+                size="small" 
+                onClick={() => setNotificationDrawerOpen(true)}
+              >
+                View Notifications
+              </Button>
+            </div>
+          }
+          type="info"
+          showIcon
+          closable
+          className="mb-6"
+        />
+      )}
       
       {/* Statistics Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
@@ -194,7 +287,13 @@ const CuratorDashboard: React.FC = () => {
             title="Pending Approval" 
             value={stats.pendingApproval} 
             prefix={<PlusOutlined />} 
+            valueStyle={{ color: unreadCount > 0 ? '#ff4d4f' : undefined }}
           />
+          {unreadCount > 0 && (
+            <Badge count={unreadCount} offset={[-10, 0]}>
+              <div />
+            </Badge>
+          )}
         </Card>
         <Card>
           <Statistic 
@@ -227,7 +326,7 @@ const CuratorDashboard: React.FC = () => {
       {/* Tabs for different views */}
       <Card className="mt-6">
         <Tabs 
-          defaultActiveKey="exhibitions"
+          defaultActiveKey="pending"
           items={[
             {
               key: 'exhibitions',
@@ -249,20 +348,41 @@ const CuratorDashboard: React.FC = () => {
             },
             {
               key: 'pending',
-              label: 'Pending Approvals',
+              label: (
+                <Badge count={unreadCount} dot>
+                  <span>Pending Approvals</span>
+                </Badge>
+              ),
               children: (
-                loading ? (
-                  <div className="flex justify-center py-10">
-                    <Spin size="large" />
-                  </div>
-                ) : (
-                  <Table 
-                    dataSource={pendingArtworks}
-                    columns={pendingColumns}
-                    rowKey="id"
-                    pagination={false}
-                  />
-                )
+                <div>
+                  {/* New Artworks Banner */}
+                  {newArtworkNotifications.length > 0 && (
+                    <Alert
+                      message={`${newArtworkNotifications.length} new artwork${newArtworkNotifications.length > 1 ? 's' : ''} uploaded recently`}
+                      type="info"
+                      showIcon
+                      action={
+                        <Button size="small" onClick={() => setNewArtworkNotifications([])}>
+                          Dismiss
+                        </Button>
+                      }
+                      className="mb-4"
+                    />
+                  )}
+                  
+                  {loading ? (
+                    <div className="flex justify-center py-10">
+                      <Spin size="large" />
+                    </div>
+                  ) : (
+                    <Table 
+                      dataSource={pendingArtworks}
+                      columns={pendingColumns}
+                      rowKey="id"
+                      pagination={false}
+                    />
+                  )}
+                </div>
               )
             },
             {
@@ -286,8 +406,81 @@ const CuratorDashboard: React.FC = () => {
           ]}
         />
       </Card>
+      
+      {/* Notifications Drawer */}
+      <Drawer
+        title={
+          <div className="flex items-center">
+            <BellOutlined className="mr-2" />
+            <span>Notifications</span>
+            <Badge count={unreadCount} className="ml-2" />
+          </div>
+        }
+        placement="right"
+        onClose={() => setNotificationDrawerOpen(false)}
+        open={notificationDrawerOpen}
+        width={400}
+      >
+        {artworkUploadNotifications.length > 0 ? (
+          <List
+            dataSource={artworkUploadNotifications}
+            renderItem={notification => (
+              <List.Item
+                key={notification.id}
+                onClick={() => {
+                  handleNotificationClick(notification);
+                  setNotificationDrawerOpen(false);
+                }}
+                className={`cursor-pointer transition-colors duration-200 hover:bg-gray-50 ${
+                  !notification.isRead ? 'bg-blue-50' : ''
+                }`}
+              >
+                <List.Item.Meta
+                  avatar={
+                    <Avatar icon={<PictureOutlined />} />
+                  }
+                  title={
+                    <Space>
+                      {notification.message}
+                      {!notification.isRead && <Badge status="processing" />}
+                    </Space>
+                  }
+                  description={
+                    <span className="text-xs text-gray-500">
+                      {formatDate(notification.createdAt, {
+                        year: 'numeric',
+                        month: 'short',
+                        day: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                      })}
+                    </span>
+                  }
+                />
+              </List.Item>
+            )}
+          />
+        ) : (
+          <Empty description="No notifications" />
+        )}
+        
+        <div className="mt-4 pt-4 border-t border-gray-200">
+          <Button
+            type="link"
+            onClick={() => {
+              router.push('/notifications');
+              setNotificationDrawerOpen(false);
+            }}
+          >
+            View all notifications
+          </Button>
+        </div>
+      </Drawer>
     </div>
   );
 };
 
-export default CuratorDashboard;
+export default withProtectedRoute(CuratorDashboard, {
+  requiredRoles: [UserRole.CURATOR, UserRole.ADMIN],
+  redirectTo: '/unauthorized',
+});

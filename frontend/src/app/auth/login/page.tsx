@@ -37,6 +37,7 @@ export default function LoginPage() {
       await login(values.email, values.password);
       message.success('Login successful!');
       // Redirection is handled in the login function based on user role
+      
     } catch (error) {
       console.error('Login error:', error);
       message.error(

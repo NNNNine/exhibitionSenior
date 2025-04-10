@@ -1,26 +1,32 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Card, Tabs, Button, Statistic, Empty, message, Spin } from 'antd';
-import { PictureOutlined, UploadOutlined, CommentOutlined, StarOutlined } from '@ant-design/icons';
+import { Card, Tabs, Button, Statistic, Empty, message, Spin, Alert, Badge } from 'antd';
+import { PictureOutlined, UploadOutlined, CommentOutlined, StarOutlined, CheckCircleOutlined } from '@ant-design/icons';
 import { useRouter } from 'next/navigation';
 import { withProtectedRoute } from '@/contexts/AuthContext';
 import { UserRole } from '@/types/user.types';
 import { getArtworks } from '@/lib/api/index';
+import { useNotifications } from '@/contexts/NotificationContext';
+import { getSocketClient, authenticateSocket } from '@/lib/socketClient';
 import ArtworkGrid from '@/components/artwork/ArtworkGrid';
+import NotificationBadge from '@/components/notification/NotificationBadge';
 import { Artwork } from '@/types/artwork.types';
 
 const ArtistDashboard: React.FC = () => {
   const router = useRouter();
+  const { notifications, unreadCount } = useNotifications();
   const [artworks, setArtworks] = useState<Artwork[]>([]);
   const [pendingArtworks, setPendingArtworks] = useState<Artwork[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
+  const [recentApprovals, setRecentApprovals] = useState<any[]>([]);
   const [stats, setStats] = useState({
     totalArtworks: 0,
     pendingApproval: 0,
     exhibitionsFeatureIn: 0,
     totalViews: 0,
     totalLikes: 0,
+    approvedArtworks: 0
   });
 
   useEffect(() => {
@@ -35,9 +41,13 @@ const ArtistDashboard: React.FC = () => {
           limit: 100, // Fetch more to process on client side
         });
 
-        // Separate pending artworks (this is mock data - in real app we'd have a status field)
+        // Separate artworks by status 
+        // Note: This is a mock implementation. In a real app, you'd filter by the status field
         const pending = fetchedArtworks.filter(art => 
           !art.exhibitionItems || art.exhibitionItems.length === 0
+        );
+        const approved = fetchedArtworks.filter(art => 
+          art.exhibitionItems && art.exhibitionItems.length > 0
         );
 
         setArtworks(fetchedArtworks);
@@ -47,6 +57,7 @@ const ArtistDashboard: React.FC = () => {
         setStats({
           totalArtworks: fetchedArtworks.length,
           pendingApproval: pending.length,
+          approvedArtworks: approved.length,
           exhibitionsFeatureIn: fetchedArtworks.reduce((total, art) => 
             total + (art.exhibitionItems?.length || 0), 0),
           totalViews: Math.floor(Math.random() * 1000), // Mock data
@@ -61,11 +72,87 @@ const ArtistDashboard: React.FC = () => {
     };
 
     fetchData();
-  }, []);
+    
+    // Set up Socket.IO for real-time notifications
+    const socket = getSocketClient();
+    authenticateSocket(crypto.randomUUID(), UserRole.ARTIST); // This would use actual user ID
+    
+    // Listen for artwork approval
+    socket.on('artwork-approved', (data) => {
+      console.log('Artwork approval notification received:', data);
+      
+      // Show toast notification
+      message.success({
+        content: `Your artwork "${data.title}" was approved by ${data.curatorName}`,
+        duration: 5,
+        onClick: () => {
+          router.push(`/artworks/${data.id}`);
+        }
+      });
+      
+      // Add to recent approvals
+      setRecentApprovals(prev => [
+        {
+          id: data.id,
+          title: data.title,
+          curatorName: data.curatorName,
+          timestamp: new Date().toISOString()
+        },
+        ...prev
+      ]);
+      
+      // Update statistics
+      setStats(prev => ({
+        ...prev,
+        pendingApproval: Math.max(0, prev.pendingApproval - 1),
+        approvedArtworks: prev.approvedArtworks + 1
+      }));
+    });
+    
+    // Clean up socket connection on unmount
+    return () => {
+      socket.off('artwork-approved');
+    };
+  }, [router]);
+  
+  // Find approval notifications
+  const approvalNotifications = notifications.filter(
+    n => n.type === 'artwork_approved'
+  );
 
   return (
     <div className="p-6 max-w-7xl mx-auto">
-      <h1 className="text-2xl font-bold mb-6">Artist Dashboard</h1>
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl font-bold">Artist Dashboard</h1>
+        <NotificationBadge />
+      </div>
+      
+      {/* Recent Approval Alert */}
+      {approvalNotifications.length > 0 && (
+        <Alert
+          message={
+            <div className="flex items-center justify-between">
+              <span>
+                <CheckCircleOutlined className="mr-2 text-green-500" />
+                {approvalNotifications.length === 1 
+                  ? 'One of your artworks was recently approved!' 
+                  : `${approvalNotifications.length} of your artworks were recently approved!`}
+              </span>
+              <Button 
+                size="small" 
+                type="primary"
+                onClick={() => router.push('/notifications')}
+              >
+                View Details
+              </Button>
+            </div>
+          }
+          type="success"
+          showIcon={false}
+          closable
+          className="mb-6"
+        />
+      )}
       
       {/* Statistics Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
@@ -78,9 +165,31 @@ const ArtistDashboard: React.FC = () => {
         </Card>
         <Card>
           <Statistic 
-            title="Pending Approval" 
+            title={
+              <div className="flex items-center">
+                <span>Pending Approval</span>
+                {pendingArtworks.length > 0 && (
+                  <Badge status="processing" className="ml-2" />
+                )}
+              </div>
+            }
             value={stats.pendingApproval} 
             prefix={<UploadOutlined />} 
+          />
+        </Card>
+        <Card>
+          <Statistic 
+            title={
+              <div className="flex items-center">
+                <span>Approved Artworks</span>
+                {approvalNotifications.length > 0 && (
+                  <Badge count={approvalNotifications.length} className="ml-2" />
+                )}
+              </div>
+            }
+            value={stats.approvedArtworks} 
+            prefix={<CheckCircleOutlined />} 
+            valueStyle={{ color: approvalNotifications.length > 0 ? '#52c41a' : undefined }}
           />
         </Card>
         <Card>
@@ -88,13 +197,6 @@ const ArtistDashboard: React.FC = () => {
             title="Total Views" 
             value={stats.totalViews} 
             prefix={<CommentOutlined />} 
-          />
-        </Card>
-        <Card>
-          <Statistic 
-            title="Total Likes" 
-            value={stats.totalLikes} 
-            prefix={<StarOutlined />} 
           />
         </Card>
       </div>
@@ -150,7 +252,11 @@ const ArtistDashboard: React.FC = () => {
             },
             {
               key: 'pending',
-              label: 'Pending Approval',
+              label: (
+                <Badge dot={pendingArtworks.length > 0}>
+                  <span>Pending Approval</span>
+                </Badge>
+              ),
               children: (
                 loading ? (
                   <div className="flex justify-center py-10">
@@ -167,8 +273,12 @@ const ArtistDashboard: React.FC = () => {
               )
             },
             {
-              key: 'exhibitions',
-              label: 'Featured in Exhibitions',
+              key: 'approved',
+              label: (
+                <Badge count={approvalNotifications.length > 0 ? approvalNotifications.length : 0} showZero={false}>
+                  <span>Recently Approved</span>
+                </Badge>
+              ),
               children: (
                 loading ? (
                   <div className="flex justify-center py-10">
@@ -180,7 +290,7 @@ const ArtistDashboard: React.FC = () => {
                       art.exhibitionItems && art.exhibitionItems.length > 0
                     )} 
                     columns={3}
-                    emptyText="None of your artworks are featured in exhibitions yet"
+                    emptyText="None of your artworks have been approved yet"
                   />
                 )
               )

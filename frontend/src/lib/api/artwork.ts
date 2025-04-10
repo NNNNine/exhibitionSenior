@@ -1,4 +1,3 @@
-// src/lib/api/artwork.ts
 import api from './index';
 import { Artwork } from '@/types/artwork.types';
 
@@ -19,6 +18,7 @@ interface ArtworkParams {
   search?: string;
   page?: number;
   limit?: number;
+  status?: string;
 }
 
 /**
@@ -72,6 +72,25 @@ export const updateArtwork = async (id: string, formData: FormData): Promise<Art
  */
 export const deleteArtwork = async (id: string): Promise<{ message: string }> => {
   const response = await api.delete(`/artworks/${id}`);
+  return response.data;
+};
+
+/**
+ * Approve artwork (curator or admin only)
+ * @param id Artwork ID
+ */
+export const approveArtwork = async (id: string): Promise<Artwork> => {
+  const response = await api.patch(`/artworks/${id}/approve`);
+  return response.data;
+};
+
+/**
+ * Reject artwork (curator or admin only)
+ * @param id Artwork ID
+ * @param reason Optional reason for rejection
+ */
+export const rejectArtwork = async (id: string, reason?: string): Promise<Artwork> => {
+  const response = await api.patch(`/artworks/${id}/reject`, { reason });
   return response.data;
 };
 

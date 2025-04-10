@@ -1,10 +1,11 @@
 import { Request, Response } from 'express';
 import { AuthRequest } from '../middlewares/auth.middleware';
 import { AppDataSource } from '../config/database';
-import { Artwork } from '../entities/Artwork';
+import { Artwork, ArtworkStatus } from '../entities/Artwork';
 import { UserRole } from '../entities/User';
 import { logger } from '../utils/logger';
 import { processArtworkImage } from '../services/upload.service';
+import { notifyArtworkUpload, notifyArtworkApproval } from '../services/notification.service';
 import path from 'path';
 import fs from 'fs';
 
@@ -134,6 +135,26 @@ export const createArtwork = async (req: AuthRequest, res: Response): Promise<vo
     
     const savedArtwork = await artworkRepository.save(artwork);
     
+    // Create notifications for curators
+    await notifyArtworkUpload(
+      savedArtwork.id,
+      savedArtwork.title,
+      req.user.id,
+      req.user.username
+    );
+    
+    // Emit socket event for real-time notification
+    const io = req.app.get('io');
+    if (io) {
+      io.emit('new-artwork', {
+        id: savedArtwork.id,
+        title: savedArtwork.title,
+        artist: req.user.username,
+        artistId: req.user.id,
+        thumbnailUrl: savedArtwork.thumbnailUrl
+      });
+    }
+    
     res.status(201).json(savedArtwork);
   } catch (error) {
     logger.error('Create artwork error:', error);
@@ -256,3 +277,101 @@ export const deleteArtwork = async (req: AuthRequest, res: Response): Promise<vo
     res.status(500).json({ message: 'Server error' });
   }
 };
+
+/**
+ * Approve an artwork
+ * @route PATCH /api/artworks/:id/approve
+ */
+export const approveArtwork = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    if (!req.user || (req.user.role !== UserRole.CURATOR && req.user.role !== UserRole.ADMIN)) {
+      res.status(403).json({ message: 'Only curators and admins can approve artworks' });
+      return;
+    }
+
+    const artworkRepository = AppDataSource.getRepository(Artwork);
+    const artwork = await artworkRepository.findOne({
+      where: { id: req.params.id },
+      relations: ['artist']
+    });
+    
+    if (!artwork) {
+      res.status(404).json({ message: 'Artwork not found' });
+      return;
+    }
+    
+    // Update artwork status (add status field to Artwork entity if not present)
+    artwork.status = ArtworkStatus.APPROVED;
+    await artworkRepository.save(artwork);
+    
+    // Create notification for the artist
+    await notifyArtworkApproval(
+      artwork.id,
+      artwork.title,
+      artwork.artistId,
+      req.user.username
+    );
+    
+    // Emit socket event for real-time notification
+    const io = req.app.get('io');
+    if (io) {
+      io.to(artwork.artistId).emit('artwork-approved', {
+        id: artwork.id,
+        title: artwork.title,
+        curatorName: req.user.username
+      });
+    }
+    
+    res.status(200).json({ message: 'Artwork approved successfully' });
+  } catch (error) {
+    logger.error('Approve artwork error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+export const rejectArtwork = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    if (!req.user || (req.user.role !== UserRole.CURATOR && req.user.role !== UserRole.ADMIN)) {
+      res.status(403).json({ message: 'Only curators and admins can reject artworks' });
+      return;
+    }
+
+    const artworkRepository = AppDataSource.getRepository(Artwork);
+    const artwork = await artworkRepository.findOne({
+      where: { id: req.params.id },
+      relations: ['artist']
+    });
+    
+    if (!artwork) {
+      res.status(404).json({ message: 'Artwork not found' });
+      return;
+    }
+    
+    // Update artwork status (add status field to Artwork entity if not present)
+    artwork.status = ArtworkStatus.REJECTED;
+    await artworkRepository.save(artwork);
+    
+    // Create notification for the artist
+    await notifyArtworkApproval(
+      artwork.id,
+      artwork.title,
+      artwork.artistId,
+      req.user.username
+    );
+    
+    // Emit socket event for real-time notification
+    const io = req.app.get('io');
+    if (io) {
+      io.to(artwork.artistId).emit('artwork-rejected', {
+        id: artwork.id,
+        title: artwork.title,
+        curatorName: req.user.username
+      });
+    }
+    
+    res.status(200).json({ message: 'Artwork rejected successfully' });
+  } catch (error) {
+    logger.error('Reject artwork error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+}

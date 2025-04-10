@@ -180,3 +180,4 @@ export * from '@/lib/api/auth';
 export * from '@/lib/api/artwork';
 export * from '@/lib/api/exhibition';
 export * from '@/lib/api/user';
+export * from '@/lib/api/notification';

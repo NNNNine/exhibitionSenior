@@ -3,6 +3,12 @@ import { User } from './User';
 import { Comment } from './Comment';
 import { ExhibitionItem } from './ExhibitionItem';
 
+export enum ArtworkStatus {
+    PENDING = 'pending',
+    APPROVED = 'approved',
+    REJECTED = 'rejected'
+}
+
 @Entity('artworks')
 export class Artwork {
     @PrimaryGeneratedColumn('uuid')
@@ -35,6 +41,13 @@ export class Artwork {
 
     @Column('timestamptz')
     creationDate: Date;
+    
+    @Column({
+        type: 'enum',
+        enum: ArtworkStatus,
+        default: ArtworkStatus.PENDING
+    })
+    status: ArtworkStatus;
 
     @OneToMany(() => Comment, comment => comment.artwork)
     comments: Comment[];

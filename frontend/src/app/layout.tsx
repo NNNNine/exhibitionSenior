@@ -2,6 +2,7 @@ import React from 'react';
 import { Inter } from 'next/font/google';
 import { ConfigProvider, App } from 'antd';
 import { AuthProvider } from '@/contexts/AuthContext';
+import { NotificationProvider } from '@/contexts/NotificationContext';
 import RouteProtectionProvider from '@/contexts/RouteProtectionContext';
 import Layout from '@/components/layout/Layout';
 import '@/styles/globals.css';
@@ -104,7 +105,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <App>
             <AuthProvider>
               <RouteProtectionProvider>
-                <Layout>{children}</Layout>
+                <NotificationProvider>
+                  <Layout>{children}</Layout>
+                </NotificationProvider>
               </RouteProtectionProvider>
             </AuthProvider>
           </App>
