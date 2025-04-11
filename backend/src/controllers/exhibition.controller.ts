@@ -13,7 +13,7 @@ import { logger } from '../utils/logger';
  * Get the active exhibition with all walls and artwork placements
  * @route GET /api/exhibition
  */
-export const getExhibition = async (req: Request, res: Response): Promise<void> => {
+export const getExhibition = async (_req: Request, res: Response): Promise<void> => {
   try {
     const exhibitionRepository = AppDataSource.getRepository(Exhibition);
     
@@ -110,7 +110,7 @@ export const createOrUpdateExhibition = async (req: AuthRequest, res: Response):
  * Get all walls for the exhibition
  * @route GET /api/exhibition/walls
  */
-export const getWalls = async (req: Request, res: Response): Promise<void> => {
+export const getWalls = async (_req: Request, res: Response): Promise<void> => {
   try {
     const wallRepository = AppDataSource.getRepository(Wall);
     const exhibitionRepository = AppDataSource.getRepository(Exhibition);
@@ -275,7 +275,7 @@ export const updateWallLayout = async (req: AuthRequest, res: Response): Promise
     }
     
     const wallRepository = AppDataSource.getRepository(Wall);
-    const artworkPlacementRepository = AppDataSource.getRepository(ArtworkPlacement);
+    // const artworkPlacementRepository = AppDataSource.getRepository(ArtworkPlacement);
     const artworkRepository = AppDataSource.getRepository(Artwork);
     
     // Find the wall
@@ -361,7 +361,7 @@ export const updateWallLayout = async (req: AuthRequest, res: Response): Promise
  * Get all approved artworks for placement (curator's stockpile)
  * @route GET /api/exhibition/stockpile
  */
-export const getArtworksForPlacement = async (req: Request, res: Response): Promise<void> => {
+export const getArtworksForPlacement = async (_req: Request, res: Response): Promise<void> => {
   try {
     const artworkRepository = AppDataSource.getRepository(Artwork);
     

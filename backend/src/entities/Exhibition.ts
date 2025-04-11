@@ -1,6 +1,7 @@
 import { Entity, Column, ManyToOne, OneToMany, JoinColumn, CreateDateColumn, UpdateDateColumn, PrimaryGeneratedColumn } from 'typeorm';
 import { User } from './User';
 import { Wall } from './Wall';
+import { ExhibitionItem } from './ExhibitionItem';
 
 @Entity('exhibitions')
 export class Exhibition {
@@ -31,6 +32,9 @@ export class Exhibition {
 
   @OneToMany(() => Wall, wall => wall.exhibition, { cascade: true })
   walls: Wall[];
+
+  @OneToMany(() => ExhibitionItem, item => item.exhibition, { cascade: true })
+  items: ExhibitionItem[];
 
   @CreateDateColumn()
   createdAt: Date;
