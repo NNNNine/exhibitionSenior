@@ -1,147 +1,80 @@
-// src/lib/api/exhibition.ts
 import api from './index';
-import { Exhibition, ExhibitionItem } from '@/types/exhibition.types';
-
-interface ExhibitionsResponse {
-  exhibitions: Exhibition[];
-  pagination: {
-    total: number;
-    page: number;
-    limit: number;
-    pages: number;
-  };
-}
-
-interface ExhibitionParams {
-  curator?: string;
-  isActive?: boolean;
-  search?: string;
-  page?: number;
-  limit?: number;
-}
+import { 
+  Exhibition, 
+  Wall, 
+  ExhibitionData, 
+  WallData, 
+  WallLayoutData 
+} from '@/types/exhibition.types';
+import { Artwork } from '@/types/artwork.types';
 
 /**
- * Get all exhibitions with filtering and pagination
- * @param params Filter and pagination parameters
+ * Get the exhibition (single exhibition system)
  */
-export const getExhibitions = async (params?: ExhibitionParams): Promise<ExhibitionsResponse> => {
-  const response = await api.get('/exhibitions', { params });
+export const getExhibition = async (): Promise<Exhibition> => {
+  const response = await api.get('/exhibition');
   return response.data;
 };
 
 /**
- * Get exhibition by ID
- * @param id Exhibition ID
+ * Create or update the exhibition
+ * @param data Exhibition data
  */
-export const getExhibitionById = async (id: string): Promise<Exhibition> => {
-  const response = await api.get(`/exhibitions/${id}`);
+export const createOrUpdateExhibition = async (data: ExhibitionData): Promise<Exhibition> => {
+  const response = await api.post('/exhibition', data);
   return response.data;
 };
 
 /**
- * Create new exhibition
- * @param exhibitionData Exhibition data
+ * Get all walls for the exhibition
  */
-export const createExhibition = async (exhibitionData: Partial<Exhibition>): Promise<Exhibition> => {
-  const response = await api.post('/exhibitions', exhibitionData);
+export const getWalls = async (): Promise<Wall[]> => {
+  const response = await api.get('/exhibition/walls');
   return response.data;
 };
 
 /**
- * Update exhibition
- * @param id Exhibition ID
- * @param exhibitionData Updated exhibition data
+ * Create a new wall
+ * @param data Wall data
  */
-export const updateExhibition = async (id: string, exhibitionData: Partial<Exhibition>): Promise<Exhibition> => {
-  const response = await api.put(`/exhibitions/${id}`, exhibitionData);
+export const createWall = async (data: WallData): Promise<Wall> => {
+  const response = await api.post('/exhibition/walls', data);
   return response.data;
 };
 
 /**
- * Delete exhibition
- * @param id Exhibition ID
+ * Update a wall
+ * @param id Wall ID
+ * @param data Updated wall data
  */
-export const deleteExhibition = async (id: string): Promise<{ message: string }> => {
-  const response = await api.delete(`/exhibitions/${id}`);
+export const updateWall = async (id: string, data: WallData): Promise<Wall> => {
+  const response = await api.put(`/exhibition/walls/${id}`, data);
   return response.data;
 };
 
 /**
- * Add artwork to exhibition with position data
- * @param exhibitionId Exhibition ID
- * @param artworkId Artwork ID
- * @param position 3D position coordinates
- * @param rotation 3D rotation coordinates
- * @param scale 3D scale values
+ * Delete a wall
+ * @param id Wall ID
  */
-export const addArtworkToExhibition = async (
-  exhibitionId: string, 
-  artworkId: string, 
-  position: { x: number, y: number, z: number },
-  rotation: { x: number, y: number, z: number },
-  scale: { x: number, y: number, z: number }
-): Promise<ExhibitionItem> => {
-  const response = await api.post(`/exhibitions/${exhibitionId}/items`, {
-    artworkId,
-    position,
-    rotation,
-    scale
-  });
+export const deleteWall = async (id: string): Promise<{ message: string }> => {
+  const response = await api.delete(`/exhibition/walls/${id}`);
   return response.data;
 };
 
 /**
- * Update exhibition item position
- * @param exhibitionId Exhibition ID
- * @param itemId Exhibition item ID
- * @param data Position, rotation, and scale data
+ * Update the layout of artworks on a wall
+ * @param wallId Wall ID
+ * @param data Layout data
  */
-export const updateExhibitionItem = async (
-  exhibitionId: string,
-  itemId: string,
-  data: {
-    position?: { x: number, y: number, z: number },
-    rotation?: { x: number, y: number, z: number },
-    scale?: { x: number, y: number, z: number }
-  }
-): Promise<ExhibitionItem> => {
-  const response = await api.put(`/exhibitions/${exhibitionId}/items/${itemId}`, data);
+export const updateWallLayout = async (wallId: string, data: WallLayoutData): Promise<Wall> => {
+  const response = await api.post(`/exhibition/walls/${wallId}/layout`, data);
   return response.data;
 };
 
 /**
- * Remove artwork from exhibition
- * @param exhibitionId Exhibition ID
- * @param itemId Exhibition item ID
+ * Get all approved artworks for placement (curator's stockpile)
  */
-export const removeArtworkFromExhibition = async (
-  exhibitionId: string,
-  itemId: string
-): Promise<{ message: string }> => {
-  const response = await api.delete(`/exhibitions/${exhibitionId}/items/${itemId}`);
-  return response.data;
-};
-
-/**
- * Toggle exhibition active status
- * @param id Exhibition ID
- * @param isActive Active status
- */
-export const toggleExhibitionStatus = async (
-  id: string, 
-  isActive: boolean
-): Promise<Exhibition> => {
-  const response = await api.patch(`/exhibitions/${id}/status`, { isActive });
-  return response.data;
-};
-
-/**
- * Get visitor statistics for an exhibition
- * @param id Exhibition ID
- */
-export const getExhibitionStats = async (
-  id: string
-): Promise<{ views: number, uniqueVisitors: number, avgTimeSpent: number }> => {
-  const response = await api.get(`/exhibitions/${id}/stats`);
+export const getArtworksForPlacement = async (): Promise<Artwork[]> => {
+  const response = await api.get('/exhibition/stockpile');
   return response.data;
 };

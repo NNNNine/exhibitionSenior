@@ -2,6 +2,7 @@ import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, OneToMany, JoinColum
 import { User } from './User';
 import { Comment } from './Comment';
 import { ExhibitionItem } from './ExhibitionItem';
+import { ArtworkPlacement } from './ArtworkPlacement';
 
 export enum ArtworkStatus {
     PENDING = 'pending',
@@ -54,6 +55,9 @@ export class Artwork {
 
     @OneToMany(() => ExhibitionItem, item => item.artwork)
     exhibitionItems: ExhibitionItem[];
+
+    @OneToMany(() => ArtworkPlacement, placement => placement.artwork)
+    placements: ArtworkPlacement[];
 
     @CreateDateColumn()
     createdAt: Date;

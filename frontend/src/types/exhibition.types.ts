@@ -1,8 +1,59 @@
 import { User } from './user.types';
-import { Artwork, ExhibitionItem } from './artwork.types';
+import { Artwork } from './artwork.types';
 
 /**
- * Exhibition interface - represents an exhibition in the system
+ * Wall interface - represents a wall in the exhibition
+ */
+export interface Wall {
+  id: string;
+  name: string;
+  displayOrder: number;
+  exhibitionId: string;
+  placements: ArtworkPlacement[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+/**
+ * Artwork placement positions
+ */
+export enum PlacementPosition {
+  LEFT = 'left',
+  CENTER = 'center',
+  RIGHT = 'right',
+  CUSTOM = 'custom'
+}
+
+/**
+ * Artwork placement interface - represents artwork placement on a wall
+ */
+export interface ArtworkPlacement {
+  id: string;
+  wallId: string;
+  artworkId: string;
+  artwork: Artwork;
+  position: PlacementPosition;
+  coordinates?: {
+    x: number;
+    y: number;
+    z: number;
+  };
+  rotation?: {
+    x: number;
+    y: number;
+    z: number;
+  };
+  scale?: {
+    x: number;
+    y: number;
+    z: number;
+  };
+  createdAt: string;
+  updatedAt: string;
+}
+
+/**
+ * Exhibition interface - represents the exhibition in the system
  */
 export interface Exhibition {
   id: string;
@@ -13,15 +64,15 @@ export interface Exhibition {
   startDate: string;
   endDate: string;
   isActive: boolean;
-  items?: ExhibitionItem[];
+  walls: Wall[];
   createdAt: string;
   updatedAt: string;
 }
 
 /**
- * Exhibition creation data interface
+ * Exhibition creation/update data interface
  */
-export interface ExhibitionCreateData {
+export interface ExhibitionData {
   title: string;
   description: string;
   startDate: string;
@@ -30,24 +81,49 @@ export interface ExhibitionCreateData {
 }
 
 /**
- * Exhibition update data interface
+ * Wall creation/update data interface
  */
-export interface ExhibitionUpdateData {
-  title?: string;
-  description?: string;
-  startDate?: string;
-  endDate?: string;
-  isActive?: boolean;
+export interface WallData {
+  name: string;
+  displayOrder?: number;
 }
 
 /**
- * Exhibition with artworks and positions
+ * Wall layout update data interface
  */
-export interface ExhibitionWithItems extends Exhibition {
-  items: (ExhibitionItem & { artwork: Artwork })[];
+export interface WallLayoutData {
+  placements: {
+    artworkId: string;
+    position: PlacementPosition;
+    coordinates?: {
+      x: number;
+      y: number;
+      z: number;
+    };
+    rotation?: {
+      x: number;
+      y: number;
+      z: number;
+    };
+    scale?: {
+      x: number;
+      y: number;
+      z: number;
+    };
+  }[];
 }
 
 /**
- * Re-export ExhibitionItem for convenience
+ * Drag item type for react-dnd
  */
-export type { ExhibitionItem } from './artwork.types';
+export interface DraggableArtwork extends Artwork {
+  type: 'ARTWORK';
+}
+
+/**
+ * Drop result type for react-dnd
+ */
+export interface DropResult {
+  position: PlacementPosition;
+  wallId: string;
+}

@@ -9,7 +9,7 @@ const router = Router();
 
 router.use('/auth', authRoutes);
 router.use('/artworks', artworkRoutes);
-router.use('/exhibitions', exhibitionRoutes);
+router.use('/exhibition', exhibitionRoutes);
 router.use('/users', userRoutes);
 router.use('/notifications', notificationRoutes);
 

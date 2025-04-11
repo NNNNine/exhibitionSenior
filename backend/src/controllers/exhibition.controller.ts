@@ -1,110 +1,94 @@
-// src/controllers/exhibition.controller.ts
+// backend/src/controllers/exhibition.controller.ts
 import { Request, Response } from 'express';
 import { AuthRequest } from '../middlewares/auth.middleware';
 import { AppDataSource } from '../config/database';
 import { Exhibition } from '../entities/Exhibition';
-import { ExhibitionItem } from '../entities/ExhibitionItem';
-import { Artwork } from '../entities/Artwork';
+import { Wall } from '../entities/Wall';
+import { ArtworkPlacement, PlacementPosition } from '../entities/ArtworkPlacement';
+import { Artwork, ArtworkStatus } from '../entities/Artwork';
 import { UserRole } from '../entities/User';
 import { logger } from '../utils/logger';
 
 /**
- * Get all exhibitions with filtering and pagination
- * @route GET /api/exhibitions
+ * Get the active exhibition with all walls and artwork placements
+ * @route GET /api/exhibition
  */
-export const getAllExhibitions = async (req: Request, res: Response): Promise<void> => {
+export const getExhibition = async (req: Request, res: Response): Promise<void> => {
   try {
     const exhibitionRepository = AppDataSource.getRepository(Exhibition);
     
-    // Extract query parameters for filtering
-    const { 
-      curator, 
-      isActive,
-      search,
-      page = 1,
-      limit = 10
-    } = req.query;
-    
-    let query = exhibitionRepository
-      .createQueryBuilder('exhibition')
-      .leftJoinAndSelect('exhibition.curator', 'curator')
-      .orderBy('exhibition.startDate', 'DESC');
-    
-    if (curator) {
-      query = query.andWhere('curator.username = :curator', { curator });
-    }
-    
-    if (isActive !== undefined) {
-      query = query.andWhere('exhibition.isActive = :isActive', { isActive });
-    }
-    
-    if (search) {
-      query = query.andWhere(
-        '(exhibition.title ILIKE :search OR exhibition.description ILIKE :search)', 
-        { search: `%${search}%` }
-      );
-    }
-    
-    // Pagination
-    const skip = (Number(page) - 1) * Number(limit);
-    query = query.skip(skip).take(Number(limit));
-    
-    const [exhibitions, total] = await query.getManyAndCount();
-    
-    res.status(200).json({
-      exhibitions,
-      pagination: {
-        total,
-        page: Number(page),
-        limit: Number(limit),
-        pages: Math.ceil(total / Number(limit))
-      }
-    });
-  } catch (error) {
-    logger.error('Get all exhibitions error:', error);
-    res.status(500).json({ message: 'Server error' });
-  }
-};
-
-/**
- * Get exhibition by ID
- * @route GET /api/exhibitions/:id
- */
-export const getExhibitionById = async (req: Request, res: Response): Promise<void> => {
-  try {
-    const exhibitionRepository = AppDataSource.getRepository(Exhibition);
-    const exhibition = await exhibitionRepository.findOne({
-      where: { id: req.params.id },
-      relations: ['curator', 'items', 'items.artwork', 'items.artwork.artist']
+    // Get the active exhibition (or the most recently created one if none is active)
+    let exhibition = await exhibitionRepository.findOne({
+      where: { isActive: true },
+      relations: ['curator', 'walls', 'walls.placements', 'walls.placements.artwork', 'walls.placements.artwork.artist']
     });
     
     if (!exhibition) {
-      res.status(404).json({ message: 'Exhibition not found' });
+      // Find the most recent exhibition if none is active
+      exhibition = await exhibitionRepository.findOne({
+        order: { createdAt: 'DESC' },
+        relations: ['curator', 'walls', 'walls.placements', 'walls.placements.artwork', 'walls.placements.artwork.artist']
+      });
+    }
+    
+    if (!exhibition) {
+      res.status(404).json({ message: 'No exhibition found' });
       return;
+    }
+    
+    // Sort the walls by display order
+    if (exhibition.walls) {
+      exhibition.walls.sort((a, b) => a.displayOrder - b.displayOrder);
+      
+      // For each wall, make sure the placements are ordered by position
+      exhibition.walls.forEach(wall => {
+        if (wall.placements) {
+          // Custom sort logic for positions (left, center, right, custom)
+          wall.placements.sort((a, b) => {
+            const positionOrder = {
+              [PlacementPosition.LEFT]: 0,
+              [PlacementPosition.CENTER]: 1,
+              [PlacementPosition.RIGHT]: 2,
+              [PlacementPosition.CUSTOM]: 3
+            };
+            return positionOrder[a.position] - positionOrder[b.position];
+          });
+        }
+      });
     }
     
     res.status(200).json(exhibition);
   } catch (error) {
-    logger.error('Get exhibition by ID error:', error);
+    logger.error('Get exhibition error:', error);
     res.status(500).json({ message: 'Server error' });
   }
 };
 
 /**
- * Create new exhibition
- * @route POST /api/exhibitions
+ * Create or update the exhibition
+ * @route POST /api/exhibition
  */
-export const createExhibition = async (req: AuthRequest, res: Response): Promise<void> => {
+export const createOrUpdateExhibition = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    // Only curators and admins can create exhibitions
+    // Only curators and admins can create or update exhibitions
     if (!req.user || (req.user.role !== UserRole.CURATOR && req.user.role !== UserRole.ADMIN)) {
       res.status(403).json({ message: 'Only curators can create exhibitions' });
-      return
+      return;
     }
     
     const exhibitionRepository = AppDataSource.getRepository(Exhibition);
-    const exhibition = new Exhibition();
     
+    // Find existing exhibition
+    let exhibition = await exhibitionRepository.findOne({
+      order: { createdAt: 'DESC' }
+    });
+    
+    if (!exhibition) {
+      // Create new exhibition if none exists
+      exhibition = new Exhibition();
+    }
+    
+    // Update exhibition fields
     exhibition.title = req.body.title;
     exhibition.description = req.body.description;
     exhibition.curator = req.user;
@@ -115,279 +99,281 @@ export const createExhibition = async (req: AuthRequest, res: Response): Promise
     
     const savedExhibition = await exhibitionRepository.save(exhibition);
     
-    res.status(201).json(savedExhibition);
+    res.status(200).json(savedExhibition);
   } catch (error) {
-    logger.error('Create exhibition error:', error);
+    logger.error('Create/update exhibition error:', error);
     res.status(500).json({ message: 'Server error' });
   }
 };
 
 /**
- * Update exhibition
- * @route PUT /api/exhibitions/:id
+ * Get all walls for the exhibition
+ * @route GET /api/exhibition/walls
  */
-export const updateExhibition = async (req: AuthRequest, res: Response): Promise<void> => {
+export const getWalls = async (req: Request, res: Response): Promise<void> => {
   try {
-    if (!req.user) {
-      res.status(401).json({ message: 'Not authenticated' });
-      return
-    }
-
+    const wallRepository = AppDataSource.getRepository(Wall);
     const exhibitionRepository = AppDataSource.getRepository(Exhibition);
+    
+    // Get the active exhibition (or the most recently created one if none is active)
     const exhibition = await exhibitionRepository.findOne({
-      where: { id: req.params.id },
-      relations: ['curator']
+      where: { isActive: true },
+      order: { createdAt: 'DESC' }
     });
     
     if (!exhibition) {
-      res.status(404).json({ message: 'Exhibition not found' });
-      return
+      res.status(404).json({ message: 'No exhibition found' });
+      return;
     }
     
-    // Check if user is the curator or an admin
-    if (
-      exhibition.curator.id !== req.user.id &&
-      req.user.role !== UserRole.ADMIN
-    ) {
-      res.status(403).json({ message: 'Not authorized to update this exhibition' });
-      return
-    }
+    // Get all walls for the exhibition
+    const walls = await wallRepository.find({
+      where: { exhibitionId: exhibition.id },
+      order: { displayOrder: 'ASC' },
+      relations: ['placements', 'placements.artwork', 'placements.artwork.artist']
+    });
     
-    // Update exhibition fields
-    if (req.body.title !== undefined) exhibition.title = req.body.title;
-    if (req.body.description !== undefined) exhibition.description = req.body.description;
-    if (req.body.startDate !== undefined) exhibition.startDate = new Date(req.body.startDate);
-    if (req.body.endDate !== undefined) exhibition.endDate = new Date(req.body.endDate);
-    if (req.body.isActive !== undefined) exhibition.isActive = req.body.isActive;
-    
-    const updatedExhibition = await exhibitionRepository.save(exhibition);
-    
-    res.status(200).json(updatedExhibition);
+    res.status(200).json(walls);
   } catch (error) {
-    logger.error('Update exhibition error:', error);
+    logger.error('Get walls error:', error);
     res.status(500).json({ message: 'Server error' });
   }
 };
 
 /**
- * Delete exhibition
- * @route DELETE /api/exhibitions/:id
+ * Create a new wall in the exhibition
+ * @route POST /api/exhibition/walls
  */
-export const deleteExhibition = async (req: AuthRequest, res: Response): Promise<void> => {
+export const createWall = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    if (!req.user) {
-      res.status(401).json({ message: 'Not authenticated' });
-      return
+    // Only curators and admins can create walls
+    if (!req.user || (req.user.role !== UserRole.CURATOR && req.user.role !== UserRole.ADMIN)) {
+      res.status(403).json({ message: 'Only curators can create walls' });
+      return;
     }
-
+    
+    const wallRepository = AppDataSource.getRepository(Wall);
     const exhibitionRepository = AppDataSource.getRepository(Exhibition);
+    
+    // Get the current exhibition
     const exhibition = await exhibitionRepository.findOne({
-      where: { id: req.params.id },
-      relations: ['curator']
+      order: { createdAt: 'DESC' }
     });
     
     if (!exhibition) {
-      res.status(404).json({ message: 'Exhibition not found' });
-      return
+      res.status(404).json({ message: 'No exhibition found. Create an exhibition first.' });
+      return;
     }
     
-    // Check if user is the curator or an admin
-    if (
-      exhibition.curator.id !== req.user.id &&
-      req.user.role !== UserRole.ADMIN
-    ) {
-      res.status(403).json({ message: 'Not authorized to delete this exhibition' });
-      return
-    }
+    // Find the highest display order of existing walls
+    const lastWall = await wallRepository.findOne({
+      where: { exhibitionId: exhibition.id },
+      order: { displayOrder: 'DESC' }
+    });
     
-    await exhibitionRepository.remove(exhibition);
+    const newDisplayOrder = lastWall ? lastWall.displayOrder + 1 : 0;
     
-    res.status(200).json({ message: 'Exhibition deleted successfully' });
+    // Create the new wall
+    const wall = new Wall();
+    wall.name = req.body.name;
+    wall.displayOrder = newDisplayOrder;
+    wall.exhibition = exhibition;
+    wall.exhibitionId = exhibition.id;
+    
+    const savedWall = await wallRepository.save(wall);
+    
+    res.status(201).json(savedWall);
   } catch (error) {
-    logger.error('Delete exhibition error:', error);
+    logger.error('Create wall error:', error);
     res.status(500).json({ message: 'Server error' });
   }
 };
 
 /**
- * Add artwork to exhibition
- * @route POST /api/exhibitions/:id/items
+ * Update a wall
+ * @route PUT /api/exhibition/walls/:id
  */
-export const addArtworkToExhibition = async (req: AuthRequest, res: Response): Promise<void> => {
+export const updateWall = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    if (!req.user) {
-      res.status(401).json({ message: 'Not authenticated' });
-      return
+    // Only curators and admins can update walls
+    if (!req.user || (req.user.role !== UserRole.CURATOR && req.user.role !== UserRole.ADMIN)) {
+      res.status(403).json({ message: 'Only curators can update walls' });
+      return;
     }
-
-    const exhibitionRepository = AppDataSource.getRepository(Exhibition);
-    const exhibition = await exhibitionRepository.findOne({
-      where: { id: req.params.id },
-      relations: ['curator', 'items']
+    
+    const wallRepository = AppDataSource.getRepository(Wall);
+    
+    // Find the wall
+    const wall = await wallRepository.findOne({
+      where: { id: req.params.id }
     });
     
-    if (!exhibition) {
-      res.status(404).json({ message: 'Exhibition not found' });
-      return
+    if (!wall) {
+      res.status(404).json({ message: 'Wall not found' });
+      return;
     }
     
-    // Check if user is the curator or an admin
-    if (
-      exhibition.curator.id !== req.user.id &&
-      req.user.role !== UserRole.ADMIN
-    ) {
-      res.status(403).json({ message: 'Not authorized to modify this exhibition' });
-      return
+    // Update the wall
+    wall.name = req.body.name || wall.name;
+    if (req.body.displayOrder !== undefined) {
+      wall.displayOrder = req.body.displayOrder;
     }
     
-    // Check if artwork exists
+    const savedWall = await wallRepository.save(wall);
+    
+    res.status(200).json(savedWall);
+  } catch (error) {
+    logger.error('Update wall error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+/**
+ * Delete a wall
+ * @route DELETE /api/exhibition/walls/:id
+ */
+export const deleteWall = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    // Only curators and admins can delete walls
+    if (!req.user || (req.user.role !== UserRole.CURATOR && req.user.role !== UserRole.ADMIN)) {
+      res.status(403).json({ message: 'Only curators can delete walls' });
+      return;
+    }
+    
+    const wallRepository = AppDataSource.getRepository(Wall);
+    
+    // Find the wall
+    const wall = await wallRepository.findOne({
+      where: { id: req.params.id }
+    });
+    
+    if (!wall) {
+      res.status(404).json({ message: 'Wall not found' });
+      return;
+    }
+    
+    // Delete the wall
+    await wallRepository.remove(wall);
+    
+    res.status(200).json({ message: 'Wall deleted successfully' });
+  } catch (error) {
+    logger.error('Delete wall error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+/**
+ * Update the layout of artworks on a wall
+ * @route POST /api/exhibition/walls/:id/layout
+ */
+export const updateWallLayout = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    // Only curators and admins can update layouts
+    if (!req.user || (req.user.role !== UserRole.CURATOR && req.user.role !== UserRole.ADMIN)) {
+      res.status(403).json({ message: 'Only curators can update layouts' });
+      return;
+    }
+    
+    const wallRepository = AppDataSource.getRepository(Wall);
+    const artworkPlacementRepository = AppDataSource.getRepository(ArtworkPlacement);
     const artworkRepository = AppDataSource.getRepository(Artwork);
-    const artwork = await artworkRepository.findOne({
-      where: { id: req.body.artworkId }
+    
+    // Find the wall
+    const wall = await wallRepository.findOne({
+      where: { id: req.params.id },
+      relations: ['placements']
     });
     
-    if (!artwork) {
-      res.status(404).json({ message: 'Artwork not found' });
-      return 
+    if (!wall) {
+      res.status(404).json({ message: 'Wall not found' });
+      return;
     }
     
-    // Check if artwork is already in exhibition
-    const existingItem = exhibition.items.find(item => item.artworkId === req.body.artworkId);
-    if (existingItem) {
-      res.status(400).json({ message: 'Artwork is already in this exhibition' });
-      return 
-    }
+    // Start a transaction
+    await AppDataSource.transaction(async transactionalEntityManager => {
+      // Remove all existing placements for this wall
+      if (wall.placements && wall.placements.length > 0) {
+        await transactionalEntityManager.remove(wall.placements);
+      }
+      
+      // Create new placements from the request
+      const placements = req.body.placements;
+      
+      if (!placements || !Array.isArray(placements)) {
+        throw new Error('Invalid placement data');
+      }
+      
+      const newPlacements: ArtworkPlacement[] = [];
+      
+      for (const placementData of placements) {
+        // Verify the artwork exists and is approved
+        const artwork = await artworkRepository.findOne({
+          where: { 
+            id: placementData.artworkId,
+            status: ArtworkStatus.APPROVED
+          }
+        });
+        
+        if (!artwork) {
+          throw new Error(`Artwork with ID ${placementData.artworkId} not found or not approved`);
+        }
+        
+        const placement = new ArtworkPlacement();
+        placement.wall = wall;
+        placement.wallId = wall.id;
+        placement.artwork = artwork;
+        placement.artworkId = artwork.id;
+        placement.position = placementData.position || PlacementPosition.CUSTOM;
+        
+        if (placementData.coordinates) {
+          placement.coordinates = placementData.coordinates;
+        }
+        
+        if (placementData.rotation) {
+          placement.rotation = placementData.rotation;
+        }
+        
+        if (placementData.scale) {
+          placement.scale = placementData.scale;
+        }
+        
+        newPlacements.push(placement);
+      }
+      
+      // Save all new placements
+      await transactionalEntityManager.save(newPlacements);
+    });
     
-    // Create new exhibition item
-    const exhibitionItemRepository = AppDataSource.getRepository(ExhibitionItem);
-    const exhibitionItem = new ExhibitionItem();
+    // Get the updated wall with its placements
+    const updatedWall = await wallRepository.findOne({
+      where: { id: wall.id },
+      relations: ['placements', 'placements.artwork', 'placements.artwork.artist']
+    });
     
-    exhibitionItem.exhibition = exhibition;
-    exhibitionItem.exhibitionId = exhibition.id;
-    exhibitionItem.artwork = artwork;
-    exhibitionItem.artworkId = artwork.id;
-    exhibitionItem.position = req.body.position;
-    exhibitionItem.rotation = req.body.rotation;
-    exhibitionItem.scale = req.body.scale;
-    
-    const savedItem = await exhibitionItemRepository.save(exhibitionItem);
-    
-    res.status(201).json(savedItem);
+    res.status(200).json(updatedWall);
   } catch (error) {
-    logger.error('Add artwork to exhibition error:', error);
-    res.status(500).json({ message: 'Server error' });
+    logger.error('Update wall layout error:', error);
+    res.status(500).json({ message: error instanceof Error ? error.message : 'Server error' });
   }
 };
 
 /**
- * Update exhibition item
- * @route PUT /api/exhibitions/:id/items/:itemId
+ * Get all approved artworks for placement (curator's stockpile)
+ * @route GET /api/exhibition/stockpile
  */
-export const updateExhibitionItem = async (req: AuthRequest, res: Response): Promise<void> => {
+export const getArtworksForPlacement = async (req: Request, res: Response): Promise<void> => {
   try {
-    if (!req.user) {
-      res.status(401).json({ message: 'Not authenticated' });
-      return 
-    }
-
-    const exhibitionRepository = AppDataSource.getRepository(Exhibition);
-    const exhibition = await exhibitionRepository.findOne({
-      where: { id: req.params.id },
-      relations: ['curator']
+    const artworkRepository = AppDataSource.getRepository(Artwork);
+    
+    // Get all approved artworks
+    const artworks = await artworkRepository.find({
+      where: { status: ArtworkStatus.APPROVED },
+      relations: ['artist']
     });
     
-    if (!exhibition) {
-      res.status(404).json({ message: 'Exhibition not found' });
-      return 
-    }
-    
-    // Check if user is the curator or an admin
-    if (
-      exhibition.curator.id !== req.user.id &&
-      req.user.role !== UserRole.ADMIN
-    ) {
-      res.status(403).json({ message: 'Not authorized to modify this exhibition' });
-      return 
-    }
-    
-    // Check if exhibition item exists
-    const exhibitionItemRepository = AppDataSource.getRepository(ExhibitionItem);
-    const exhibitionItem = await exhibitionItemRepository.findOne({
-      where: { 
-        id: req.params.itemId,
-        exhibitionId: req.params.id
-      }
-    });
-    
-    if (!exhibitionItem) {
-      res.status(404).json({ message: 'Exhibition item not found' });
-      return 
-    }
-    
-    // Update exhibition item fields
-    if (req.body.position) exhibitionItem.position = req.body.position;
-    if (req.body.rotation) exhibitionItem.rotation = req.body.rotation;
-    if (req.body.scale) exhibitionItem.scale = req.body.scale;
-    
-    const updatedItem = await exhibitionItemRepository.save(exhibitionItem);
-    
-    res.status(200).json(updatedItem);
+    res.status(200).json(artworks);
   } catch (error) {
-    logger.error('Update exhibition item error:', error);
-    res.status(500).json({ message: 'Server error' });
-  }
-};
-
-/**
- * Remove artwork from exhibition
- * @route DELETE /api/exhibitions/:id/items/:itemId
- */
-export const removeArtworkFromExhibition = async (req: AuthRequest, res: Response): Promise<void> => {
-  try {
-    if (!req.user) {
-      res.status(401).json({ message: 'Not authenticated' });
-      return 
-    }
-
-    const exhibitionRepository = AppDataSource.getRepository(Exhibition);
-    const exhibition = await exhibitionRepository.findOne({
-      where: { id: req.params.id },
-      relations: ['curator']
-    });
-    
-    if (!exhibition) {
-      res.status(404).json({ message: 'Exhibition not found' });
-      return 
-    }
-    
-    // Check if user is the curator or an admin
-    if (
-      exhibition.curator.id !== req.user.id &&
-      req.user.role !== UserRole.ADMIN
-    ) {
-      res.status(403).json({ message: 'Not authorized to modify this exhibition' });
-      return 
-    }
-    
-    // Check if exhibition item exists
-    const exhibitionItemRepository = AppDataSource.getRepository(ExhibitionItem);
-    const exhibitionItem = await exhibitionItemRepository.findOne({
-      where: { 
-        id: req.params.itemId,
-        exhibitionId: req.params.id
-      }
-    });
-    
-    if (!exhibitionItem) {
-      res.status(404).json({ message: 'Exhibition item not found' });
-      return 
-    }
-    
-    await exhibitionItemRepository.remove(exhibitionItem);
-    
-    res.status(200).json({ message: 'Artwork removed from exhibition successfully' });
-  } catch (error) {
-    logger.error('Remove artwork from exhibition error:', error);
+    logger.error('Get artworks for placement error:', error);
     res.status(500).json({ message: 'Server error' });
   }
 };
