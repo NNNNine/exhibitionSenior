@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Card, message, Alert } from 'antd';
+import { Card, Alert } from 'antd';
 import { withProtectedRoute } from '@/contexts/AuthContext';
 import { UserRole } from '@/types/user.types';
 import ArtworkUploadForm from '@/components/artwork/ArtworkUploadForm';
@@ -12,12 +12,13 @@ const ArtworkUploadPage: React.FC = () => {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   const handleSubmit = async (formData: FormData) => {
     setLoading(true);
     try {
       const artwork = await createArtwork(formData);
-      message.success('Artwork submitted successfully!');
+      setSuccessMessage('Artwork submitted successfully!');
       
       // Redirect to artwork detail page
       router.push(`/artworks/${artwork.id}`);
@@ -49,6 +50,19 @@ const ArtworkUploadPage: React.FC = () => {
             className="mb-6"
           />
         )}
+
+        {successMessage && (
+          <Alert 
+            message="Success" 
+            description={successMessage} 
+            type="success" 
+            showIcon 
+            className="mb-4" 
+            closable
+            onClose={() => setSuccessMessage(null)}
+          />
+        )}
+
       </Card>
     </div>
   );
