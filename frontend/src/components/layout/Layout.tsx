@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { Layout as AntLayout, Menu, Button, Dropdown, Avatar, Space, Drawer, Badge, Tooltip } from 'antd';
+import { Layout as AntLayout, Menu, Button, Dropdown, Avatar, Space, Drawer, Badge } from 'antd';
 import Link from 'next/link';
 import { useRouter, usePathname } from 'next/navigation';
 import {
@@ -20,6 +20,7 @@ import {
 import { useAuthContext } from '@/contexts/AuthContext';
 import NotificationDropdown from '@/components/notification/NotificationDropdown';
 import { UserRole } from '@/types/user.types';
+import { getUnreadNotifications } from '@/lib/api/notification';
 
 const { Header, Content, Footer } = AntLayout;
 
@@ -34,6 +35,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isClient, setIsClient] = useState(false);
   const [activeExhibition, setActiveExhibition] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
 
   // Simulate an active exhibition notification
   useEffect(() => {
@@ -44,6 +46,21 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   // Ensure component only renders on client
   useEffect(() => {
     setIsClient(true);
+  }, []);
+
+  // Simulate fetching unread notifications count
+  useEffect(() => {
+    const fetchUnreadCount = async () => {
+      try {
+        // Simulate an API call to fetch unread notifications count
+        const response = await getUnreadNotifications();
+        setUnreadCount(response.count);
+      }
+      catch (error) {
+        console.error('Error fetching unread notifications:', error);
+      }
+    };
+    fetchUnreadCount();
   }, []);
 
   // Get current selected menu item based on pathname
@@ -93,7 +110,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           {
             key: 'pending-approvals',
             label: <Link href="/curator/approvals">Pending Approvals</Link>,
-            icon: <Badge count={3} size="small"><AppstoreOutlined /></Badge>,
+            icon: <AppstoreOutlined />,
           }
         ];
       case UserRole.ADMIN:
@@ -128,19 +145,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     },
     {
       key: 'metaverse',
-      label: (
-        <Link href="/metaverse/view">
-          <Tooltip title="Enter 3D Exhibition">
-            {activeExhibition ? (
-              <Badge status="success" dot>
-                <span>3D Exhibition</span>
-              </Badge>
-            ) : (
-              <span>3D Exhibition</span>
-            )}
-          </Tooltip>
-        </Link>
-      ),
+      label: <Link href="/metaverse/view">3D Exhibition</Link>,
       icon: <EnvironmentOutlined />,
     },
   ], [activeExhibition]);
@@ -166,29 +171,9 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
       onClick: () => router.push(`/profile/${user?.username}`),
     },
     {
-      key: 'dashboard',
-      label: user?.role === UserRole.ARTIST 
-        ? 'Artist Dashboard' 
-        : user?.role === UserRole.CURATOR
-        ? 'Curator Dashboard'
-        : 'Dashboard',
-      icon: <DashboardOutlined />,
-      onClick: () => {
-        if (user?.role === UserRole.ARTIST) {
-          router.push('/dashboard/artist');
-        } else if (user?.role === UserRole.CURATOR) {
-          router.push('/dashboard/curator');
-        } else if (user?.role === UserRole.ADMIN) {
-          router.push('/dashboard/admin');
-        } else {
-          router.push('/profile');
-        }
-      },
-    },
-    {
       key: 'notifications',
       label: 'Notifications',
-      icon: <Badge count={2}><BellOutlined /></Badge>,
+      icon: <Badge count={unreadCount}><BellOutlined /></Badge>,
       onClick: () => router.push('/notifications'),
     },
     {
@@ -212,7 +197,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
       {/* Header */}
       <Header className="bg-gray-900 flex items-center justify-between px-4 md:px-6 h-16 sticky top-0 z-50">
         {/* Logo */}
-        <div className="flex items-center">
+        <div className="flex-none items-center">
           <Link href="/" className="flex items-center">
             <h1 className="text-xl md:text-2xl font-bold text-white mr-4">
               Exhibition Art Online
@@ -230,6 +215,8 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
               items={mainNavItems}
               className="border-0 flex items-center"
               style={{ 
+                width: '100%',
+                margin: 50,
                 display: 'flex', 
                 alignItems: 'center', 
                 justifyContent: 'center',
@@ -347,13 +334,13 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
         <div className="max-w-6xl mx-auto">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6 text-left">
             <div>
-              <h3 className="text-lg font-bold mb-3">Exhibition Art Online</h3>
+              <h3 className="text-zinc-300 text-lg font-bold mb-3">Exhibition Art Online</h3>
               <p className="text-gray-400">
                 A platform for experiencing art exhibitions in an immersive 3D environment.
               </p>
             </div>
             <div>
-              <h3 className="text-lg font-bold mb-3">Quick Links</h3>
+              <h3 className="text-zinc-300 text-lg font-bold mb-3">Quick Links</h3>
               <ul className="space-y-2">
                 <li>
                   <Link href="/exhibitions" className="text-gray-400 hover:text-white">
@@ -378,7 +365,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
               </ul>
             </div>
             <div>
-              <h3 className="text-lg font-bold mb-3">Contact</h3>
+              <h3 className="text-zinc-300 text-lg font-bold mb-3">Contact</h3>
               <p className="text-gray-400">
                 Have questions? Feel free to reach out to us.
               </p>

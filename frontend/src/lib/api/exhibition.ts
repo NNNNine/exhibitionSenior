@@ -1,15 +1,16 @@
+// src/lib/api/exhibition.ts
 import api from './index';
 import { 
   Exhibition, 
   Wall, 
-  ExhibitionData, 
+  ExhibitionCreateData, 
   WallData, 
   WallLayoutData 
 } from '@/types/exhibition.types';
 import { Artwork } from '@/types/artwork.types';
 
 /**
- * Get the exhibition (single exhibition system)
+ * Get the active exhibition with all walls and artwork placements
  */
 export const getExhibition = async (): Promise<Exhibition> => {
   const response = await api.get('/exhibition');
@@ -20,7 +21,7 @@ export const getExhibition = async (): Promise<Exhibition> => {
  * Create or update the exhibition
  * @param data Exhibition data
  */
-export const createOrUpdateExhibition = async (data: ExhibitionData): Promise<Exhibition> => {
+export const createOrUpdateExhibition = async (data: ExhibitionCreateData): Promise<Exhibition> => {
   const response = await api.post('/exhibition', data);
   return response.data;
 };
@@ -64,7 +65,7 @@ export const deleteWall = async (id: string): Promise<{ message: string }> => {
 /**
  * Update the layout of artworks on a wall
  * @param wallId Wall ID
- * @param data Layout data
+ * @param data Layout data with artwork placements
  */
 export const updateWallLayout = async (wallId: string, data: WallLayoutData): Promise<Wall> => {
   const response = await api.post(`/exhibition/walls/${wallId}/layout`, data);
@@ -76,5 +77,34 @@ export const updateWallLayout = async (wallId: string, data: WallLayoutData): Pr
  */
 export const getArtworksForPlacement = async (): Promise<Artwork[]> => {
   const response = await api.get('/exhibition/stockpile');
+  return response.data;
+};
+
+/**
+ * Save the complete exhibition layout to be used by Unity WebGL
+ * @param exhibitionId Exhibition ID (optional in single exhibition system)
+ */
+export const saveExhibitionLayout = async (exhibitionId?: string): Promise<{ message: string }> => {
+  // In a single exhibition system, the exhibitionId might be optional
+  const endpoint = exhibitionId 
+    ? `/exhibition/${exhibitionId}/save-layout` 
+    : '/exhibition/save-layout';
+  
+  const response = await api.post(endpoint);
+  return response.data;
+};
+
+/**
+ * Get the Unity compatible layout data for rendering the exhibition
+ * This endpoint would be called by the Unity WebGL application
+ * @param exhibitionId Exhibition ID (optional in single exhibition system)
+ */
+export const getUnityLayout = async (exhibitionId?: string): Promise<any> => {
+  // In a single exhibition system, the exhibitionId might be optional
+  const endpoint = exhibitionId 
+    ? `/exhibition/${exhibitionId}/unity-layout` 
+    : '/exhibition/unity-layout';
+  
+  const response = await api.get(endpoint);
   return response.data;
 };

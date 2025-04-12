@@ -9,9 +9,8 @@ import {
   UserOutlined, 
   RightCircleOutlined 
 } from '@ant-design/icons';
-import { getExhibitions, getArtworks } from '@/lib/api/index';
+import { getArtworks } from '@/lib/api/artwork';
 import { formatDate, formatImageUrl } from '@/utils/format';
-import { Exhibition } from '@/types/exhibition.types';
 import { Artwork } from '@/types/artwork.types';
 import Image from 'next/image';
 
@@ -20,7 +19,6 @@ const { Title, Paragraph } = Typography;
 export default function Home() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
-  const [featuredExhibitions, setFeaturedExhibitions] = useState<Exhibition[]>([]);
   const [recentArtworks, setRecentArtworks] = useState<Artwork[]>([]);
 
   useEffect(() => {
@@ -28,18 +26,10 @@ export default function Home() {
       try {
         setLoading(true);
         
-        // Fetch active exhibitions
-        const { exhibitions } = await getExhibitions({ 
-          isActive: true,
-          limit: 4 
-        });
-        
         // Fetch recent artworks
         const { artworks } = await getArtworks({ 
           limit: 6 
         });
-        
-        setFeaturedExhibitions(exhibitions);
         setRecentArtworks(artworks);
       } catch (error) {
         console.error('Error fetching data:', error);
@@ -90,66 +80,6 @@ export default function Home() {
               </Button>
             </div>
           </div>
-        </div>
-      </section>
-
-      {/* Featured Exhibitions Section */}
-      <section className="py-16 bg-gray-50">
-        <div className="container mx-auto px-6">
-          <div className="flex justify-between items-center mb-10">
-            <Title level={2}>Featured Exhibitions</Title>
-            <Button 
-              type="link" 
-              onClick={() => router.push('/exhibitions')}
-              icon={<RightCircleOutlined />}
-            >
-              See All Exhibitions
-            </Button>
-          </div>
-          
-          {loading ? (
-            <div className="flex justify-center py-12">
-              <Spin size="large" />
-            </div>
-          ) : (
-            <Row gutter={[24, 24]}>
-              {featuredExhibitions.map((exhibition) => (
-                <Col xs={24} sm={12} md={8} lg={6} key={exhibition.id}>
-                  <Card
-                    hoverable
-                    cover={
-                      <div className="h-48 bg-gray-200 flex items-center justify-center">
-                        <EnvironmentOutlined style={{ fontSize: 48, color: '#d9d9d9' }} />
-                      </div>
-                    }
-                    onClick={() => router.push(`/exhibitions/${exhibition.id}`)}
-                  >
-                    <Card.Meta
-                      title={exhibition.title}
-                      description={
-                        <>
-                          <p className="text-gray-500 line-clamp-2 mb-2">
-                            {exhibition.description}
-                          </p>
-                          <p className="text-gray-400 text-sm">
-                            {formatDate(exhibition.startDate)} - {formatDate(exhibition.endDate)}
-                          </p>
-                        </>
-                      }
-                    />
-                  </Card>
-                </Col>
-              ))}
-              
-              {featuredExhibitions.length === 0 && (
-                <Col span={24}>
-                  <div className="text-center py-12">
-                    <p className="text-gray-500">No active exhibitions at the moment. Check back soon!</p>
-                  </div>
-                </Col>
-              )}
-            </Row>
-          )}
         </div>
       </section>
 
@@ -220,31 +150,33 @@ export default function Home() {
             <Row gutter={[24, 24]}>
               {recentArtworks.map((artwork) => (
                 <Col xs={24} sm={12} md={8} key={artwork.id}>
-                  <Card
+                    <Card
                     hoverable
                     cover={
-                      <img
-                        alt={artwork.title}
-                        src={formatImageUrl(artwork.thumbnailUrl || artwork.fileUrl)}
-                        className="h-48 w-full object-cover"
+                      <Image
+                      alt={artwork.title}
+                      src={formatImageUrl(artwork.thumbnailUrl || artwork.fileUrl)}
+                      className="h-48 w-full object-cover"
+                      width={400}
+                      height={300}
                       />
                     }
                     onClick={() => router.push(`/artworks/${artwork.id}`)}
-                  >
+                    >
                     <Card.Meta
                       title={artwork.title}
                       description={
-                        <>
-                          <p className="text-gray-500 mb-2">
-                            By {artwork.artist?.username || `Artist #${artwork.artistId}`}
-                          </p>
-                          <p className="text-gray-400 text-sm">
-                            {formatDate(artwork.creationDate)}
-                          </p>
-                        </>
+                      <>
+                        <p className="text-gray-500 mb-2">
+                        By {artwork.artist?.username || `Artist #${artwork.artistId}`}
+                        </p>
+                        <p className="text-gray-400 text-sm">
+                        {formatDate(artwork.creationDate)}
+                        </p>
+                      </>
                       }
                     />
-                  </Card>
+                    </Card>
                 </Col>
               ))}
             </Row>

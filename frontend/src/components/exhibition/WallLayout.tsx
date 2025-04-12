@@ -1,8 +1,8 @@
 // frontend/src/components/exhibition/WallLayout.tsx
-import React from 'react';
+import React, { useState } from 'react';
 import { useDrop } from 'react-dnd';
-import { Typography, Button, Image } from 'antd';
-import { CloseOutlined } from '@ant-design/icons';
+import { Typography, Button, Image, Tooltip, Badge } from 'antd';
+import { CloseOutlined, InfoCircleOutlined } from '@ant-design/icons';
 import { Wall, PlacementPosition, ArtworkPlacement, DraggableArtwork } from '@/types/exhibition.types';
 import { formatImageUrl } from '@/utils/format';
 
@@ -19,14 +19,28 @@ const WallLayout: React.FC<WallLayoutProps> = ({
   onArtworkPlace, 
   onArtworkRemove
 }) => {
+  // State to track active drag operations
+  const [isDragging, setIsDragging] = useState(false);
+  
   // Get existing placements for each position
   const leftPlacement = wall.placements?.find(p => p.position === PlacementPosition.LEFT);
   const centerPlacement = wall.placements?.find(p => p.position === PlacementPosition.CENTER);
   const rightPlacement = wall.placements?.find(p => p.position === PlacementPosition.RIGHT);
+  
+  // Count number of filled slots
+  const filledSlots = [leftPlacement, centerPlacement, rightPlacement].filter(Boolean).length;
+  const totalSlots = 3;
 
   return (
     <div className="my-6">
-      <Title level={3}>{wall.name} Layout</Title>
+      <div className="flex justify-between items-center mb-4">
+        <Title level={3}>{wall.name} Layout</Title>
+        <Badge 
+          count={`${filledSlots}/${totalSlots}`} 
+          className="site-badge-count-4"
+          style={{ backgroundColor: filledSlots === totalSlots ? '#52c41a' : '#1890ff' }}
+        />
+      </div>
       
       <div className="flex flex-wrap justify-between gap-4 p-4 bg-gray-100 rounded-lg">
         {/* Left Position */}
@@ -36,6 +50,8 @@ const WallLayout: React.FC<WallLayoutProps> = ({
           wallId={wall.id}
           onArtworkPlace={onArtworkPlace}
           onArtworkRemove={onArtworkRemove}
+          isDraggingGlobal={isDragging}
+          onDragStateChange={setIsDragging}
         />
         
         {/* Center Position */}
@@ -45,6 +61,8 @@ const WallLayout: React.FC<WallLayoutProps> = ({
           wallId={wall.id}
           onArtworkPlace={onArtworkPlace}
           onArtworkRemove={onArtworkRemove}
+          isDraggingGlobal={isDragging}
+          onDragStateChange={setIsDragging}
         />
         
         {/* Right Position */}
@@ -54,7 +72,17 @@ const WallLayout: React.FC<WallLayoutProps> = ({
           wallId={wall.id}
           onArtworkPlace={onArtworkPlace}
           onArtworkRemove={onArtworkRemove}
+          isDraggingGlobal={isDragging}
+          onDragStateChange={setIsDragging}
         />
+      </div>
+      
+      <div className="mt-4 p-3 bg-blue-50 text-blue-700 rounded-md flex items-start">
+        <InfoCircleOutlined className="mr-2 mt-1" />
+        <div>
+          <p className="font-medium">Drag artworks from the stockpile on the left and drop them into one of the three position slots above.</p>
+          <p className="text-sm mt-1">Each wall can display three artworks. You can remove an artwork by clicking the X button and replace it with another one.</p>
+        </div>
       </div>
     </div>
   );
@@ -66,6 +94,8 @@ interface PlacementSlotProps {
   wallId: string;
   onArtworkPlace: (artworkId: string, position: PlacementPosition, wallId: string) => void;
   onArtworkRemove: (placementId: string) => void;
+  isDraggingGlobal: boolean;
+  onDragStateChange: (isDragging: boolean) => void;
 }
 
 const PlacementSlot: React.FC<PlacementSlotProps> = ({
@@ -73,7 +103,9 @@ const PlacementSlot: React.FC<PlacementSlotProps> = ({
   placement,
   wallId,
   onArtworkPlace,
-  onArtworkRemove
+  onArtworkRemove,
+  isDraggingGlobal,
+  onDragStateChange
 }) => {
   // Set up drop target
   const [{ isOver, canDrop }, drop] = useDrop({
@@ -89,7 +121,28 @@ const PlacementSlot: React.FC<PlacementSlotProps> = ({
     }),
   });
 
-  // Render the slot
+  // Determine the background color based on drop state
+  let backgroundColor = 'bg-white';
+  if (isOver && canDrop) {
+    backgroundColor = 'bg-green-100';
+  } else if (canDrop && isDraggingGlobal) {
+    backgroundColor = 'bg-blue-50';
+  } else if (placement) {
+    backgroundColor = 'bg-white';
+  }
+
+  // Determine the border style based on drop state
+  let borderStyle = placement 
+    ? 'border-gray-300' 
+    : 'border-dashed border-gray-300';
+  
+  if (isOver && canDrop) {
+    borderStyle = 'border-green-500';
+  } else if (canDrop && isDraggingGlobal) {
+    borderStyle = 'border-blue-400 border-dashed';
+  }
+
+  // Get position title for display
   const positionTitle = {
     [PlacementPosition.LEFT]: 'Left',
     [PlacementPosition.CENTER]: 'Center',
@@ -97,40 +150,26 @@ const PlacementSlot: React.FC<PlacementSlotProps> = ({
     [PlacementPosition.CUSTOM]: 'Custom',
   };
 
-  // Determine the background color based on drop state
-  let backgroundColor = 'bg-white';
-  if (isOver && canDrop) {
-    backgroundColor = 'bg-green-100';
-  } else if (canDrop) {
-    backgroundColor = 'bg-blue-50';
-  } else if (placement) {
-    backgroundColor = 'bg-white';
-  }
-
   return (
     <div 
       ref={(node) => {
         drop(node);
       }}
-      className={`flex-1 min-w-64 min-h-64 p-2 rounded border-2 ${
-        isOver && canDrop 
-          ? 'border-green-500' 
-          : placement 
-            ? 'border-gray-300' 
-            : 'border-dashed border-gray-300'
-      } ${backgroundColor} transition-colors duration-200`}
+      className={`flex-1 min-w-64 min-h-64 p-2 rounded border-2 ${borderStyle} ${backgroundColor} transition-colors duration-200`}
     >
       <div className="flex justify-between items-center mb-2">
         <Text strong>{positionTitle[position]}</Text>
         
         {placement && (
-          <Button 
-            type="text" 
-            danger 
-            icon={<CloseOutlined />} 
-            size="small"
-            onClick={() => onArtworkRemove(placement.id)}
-          />
+          <Tooltip title="Remove artwork">
+            <Button 
+              type="text" 
+              danger 
+              icon={<CloseOutlined />} 
+              size="small"
+              onClick={() => onArtworkRemove(placement.id)}
+            />
+          </Tooltip>
         )}
       </div>
       
@@ -151,7 +190,11 @@ const PlacementSlot: React.FC<PlacementSlotProps> = ({
         </div>
       ) : (
         <div className="flex items-center justify-center h-48 text-gray-400">
-          {canDrop ? 'Drop artwork here' : 'Empty slot'}
+          {isDraggingGlobal && canDrop ? (
+            <div className="text-blue-500 font-medium">Drop artwork here</div>
+          ) : (
+            <div>Empty slot</div>
+          )}
         </div>
       )}
     </div>

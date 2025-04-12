@@ -1,3 +1,4 @@
+// frontend/src/lib/api/index.ts
 import axios, { AxiosRequestConfig, AxiosError } from 'axios';
 import { refreshToken as refreshTokenAPI } from '@/lib/api/auth';
 
@@ -173,11 +174,30 @@ export const formatError = (error: any): Error => {
   return new Error(message);
 };
 
+// Export API instance
 export default api;
 
-// Export individual API services
-export * from '@/lib/api/auth';
-export * from '@/lib/api/artwork';
-export * from '@/lib/api/exhibition';
-export * from '@/lib/api/user';
-export * from '@/lib/api/notification';
+// Re-export functions from specific API modules
+export * from './auth';
+export * from './artwork';
+export * from './user';
+export * from './notification';
+
+// Export exhibition functions directly to fix the import issue
+export { 
+  getExhibition,
+  createOrUpdateExhibition,
+  getWalls,
+  createWall,
+  updateWall,
+  deleteWall,
+  updateWallLayout,
+  getArtworksForPlacement
+} from './exhibition';
+
+// Also export a renamed version from exhibition.ts
+import { 
+  getExhibition as getExhibitionsFromModule 
+} from './exhibition';
+
+export const getExhibitions = getExhibitionsFromModule;

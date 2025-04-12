@@ -65,83 +65,88 @@ const NotificationDropdown: React.FC = () => {
     }
   };
 
-  // Dropdown content
-  const notificationMenu = (
-    <div className="bg-white rounded-md shadow-lg overflow-hidden" style={{ width: 360, maxHeight: 480 }}>
-      <div className="py-2 px-4 border-b border-gray-200 flex justify-between items-center">
-        <Text strong>Notifications</Text>
-        {unreadCount > 0 && (
-          <Button size="small" onClick={() => markAllAsRead()}>
-            Mark all as read
-          </Button>
-        )}
-      </div>
-      
-      <div style={{ maxHeight: 380, overflowY: 'auto' }}>
-        {loading ? (
-          <div className="flex justify-center py-6">
-            <Spin />
-          </div>
-        ) : notifications.length > 0 ? (
-          <List
-            dataSource={notifications}
-            renderItem={(notification) => (
-              <List.Item
-                key={notification.id}
-                onClick={() => handleNotificationClick(notification)}
-                className={`cursor-pointer transition-colors duration-200 hover:bg-gray-50 ${
-                  !notification.isRead ? 'bg-blue-50' : ''
-                }`}
-                style={{ padding: '12px 16px' }}
-              >
-                <List.Item.Meta
-                  avatar={
-                    <Avatar
-                      icon={notification.sender?.profileUrl ? null : <UserOutlined />}
-                      src={notification.sender?.profileUrl}
-                      className="flex items-center justify-center"
-                    >
-                      {getNotificationIcon(notification.type)}
-                    </Avatar>
-                  }
-                  title={
-                    <div className="font-medium">
-                      {notification.message}
-                    </div>
-                  }
-                  description={
-                    <Text type="secondary" className="text-xs">
-                      {formatRelativeTime(notification.createdAt)}
-                    </Text>
-                  }
-                />
-              </List.Item>
+  // Create notification menu content
+  const notificationMenu = {
+    items: [{
+      key: 'notification-content',
+      label: (
+        <div className="bg-white rounded-md shadow-lg overflow-hidden" style={{ width: 360, maxHeight: 480 }}>
+          <div className="py-2 px-4 border-b border-gray-200 flex justify-between items-center">
+            <Text strong>Notifications</Text>
+            {unreadCount > 0 && (
+              <Button size="small" onClick={() => markAllAsRead()}>
+                Mark all as read
+              </Button>
             )}
-          />
-        ) : (
-          <Empty
-            image={Empty.PRESENTED_IMAGE_SIMPLE}
-            description="No notifications"
-            className="my-8"
-          />
-        )}
-      </div>
-      
-      <div className="py-2 px-4 border-t border-gray-200 text-center">
-        <Button 
-          type="link" 
-          size="small"
-          onClick={() => router.push('/notifications')}
-        >
-          View all notifications
-        </Button>
-      </div>
-    </div>
-  );
+          </div>
+          
+          <div style={{ maxHeight: 380, overflowY: 'auto' }}>
+            {loading ? (
+              <div className="flex justify-center py-6">
+                <Spin />
+              </div>
+            ) : notifications.length > 0 ? (
+              <List
+                dataSource={notifications}
+                renderItem={(notification) => (
+                  <List.Item
+                    key={notification.id}
+                    onClick={() => handleNotificationClick(notification)}
+                    className={`cursor-pointer transition-colors duration-200 hover:bg-gray-50 ${
+                      !notification.isRead ? 'bg-blue-50' : ''
+                    }`}
+                    style={{ padding: '12px 16px' }}
+                  >
+                    <List.Item.Meta
+                      avatar={
+                        <Avatar
+                          icon={notification.sender?.profileUrl ? null : <UserOutlined />}
+                          src={notification.sender?.profileUrl}
+                          className="flex items-center justify-center"
+                        >
+                          {getNotificationIcon(notification.type)}
+                        </Avatar>
+                      }
+                      title={
+                        <div className="font-medium">
+                          {notification.message}
+                        </div>
+                      }
+                      description={
+                        <Text type="secondary" className="text-xs">
+                          {formatRelativeTime(notification.createdAt)}
+                        </Text>
+                      }
+                    />
+                  </List.Item>
+                )}
+              />
+            ) : (
+              <Empty
+                image={Empty.PRESENTED_IMAGE_SIMPLE}
+                description="No notifications"
+                className="my-8"
+              />
+            )}
+          </div>
+          
+          <div className="py-2 px-4 border-t border-gray-200 text-center">
+            <Button 
+              type="link" 
+              size="small"
+              onClick={() => router.push('/notifications')}
+            >
+              View all notifications
+            </Button>
+          </div>
+        </div>
+      ),
+    }]
+  };
 
   return (
     <Dropdown
-      overlay={notificationMenu}
+      menu={notificationMenu}
       trigger={['click']}
       open={open}
       onOpenChange={setOpen}

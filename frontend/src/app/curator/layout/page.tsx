@@ -2,25 +2,36 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
-// import { DndProvider } from 'react-dnd';
-import { HTML5Backend } from 'react-dnd-html5-backend';
-import { TouchBackend } from 'react-dnd-touch-backend';
-import { DndProvider, TouchTransition, MouseTransition } from 'react-dnd-multi-backend'
+import { DndProvider, TouchTransition, MouseTransition } from 'react-dnd-multi-backend';
+import { HTML5Backend } from 'react-dnd-html5-backend'
+import { TouchBackend } from 'react-dnd-touch-backend'
+// import { HTML5toTouch } from 'rdndmb-html5-to-touch';
 import { 
   Layout, 
   Typography, 
   Button, 
   Spin, 
   Card, 
-  Tabs, 
   Modal, 
   Form, 
   Input, 
   message, 
   Divider, 
-  Alert 
+  Alert,
+  Empty,
+  Space,
+  Tooltip,
+  Badge
 } from 'antd';
-import { PlusOutlined, SaveOutlined, UndoOutlined, ExportOutlined } from '@ant-design/icons';
+import { 
+  PlusOutlined, 
+  SaveOutlined, 
+  UndoOutlined, 
+  ExportOutlined, 
+  InfoCircleOutlined, 
+  SearchOutlined,
+  ExclamationCircleOutlined
+} from '@ant-design/icons';
 import { withProtectedRoute } from '@/contexts/AuthContext';
 import { UserRole } from '@/types/user.types';
 import { 
@@ -38,33 +49,33 @@ import {
   updateWall, 
   deleteWall, 
   updateWallLayout,
-  getArtworksForPlacement 
+  getArtworksForPlacement,
+  saveExhibitionLayout
 } from '@/lib/api/exhibition';
 
 import WallComponent from '@/components/exhibition/Wall';
 import WallLayout from '@/components/exhibition/WallLayout';
 import DraggableArtworkComponent from '@/components/exhibition/DraggableArtwork';
 
-const { Title, Text } = Typography;
+const { Title, Text, Paragraph } = Typography;
 const { Content, Sider } = Layout;
-const { TabPane } = Tabs;
 
-// Choose the right backend based on device
-const DndBackend = {
-    backends: [
-      {
-        id: 'html5',
-        backend: HTML5Backend,
-        transition: MouseTransition,
-      },
-      {
-        id: 'touch',
-        backend: TouchBackend,
-        options: {enableMouseEvents: true},
-        preview: true,
-        transition: TouchTransition,
-      },
-    ],
+// HTML5toTouch is a custom preset that enables drag & drop on both desktop and mobile
+export const dndOptions = {
+  backends: [
+    {
+      id: 'html5',
+      backend: HTML5Backend,
+      transition: MouseTransition,
+    },
+    {
+      id: 'touch',
+      backend: TouchBackend,
+      options: {enableMouseEvents: true},
+      preview: true,
+      transition: TouchTransition,
+    },
+  ],
 }
 
 const CuratorLayoutEditor: React.FC = () => {
@@ -78,6 +89,10 @@ const CuratorLayoutEditor: React.FC = () => {
   const [editingWall, setEditingWall] = useState<Wall | null>(null);
   const [wallForm] = Form.useForm();
   const [error, setError] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [searchText, setSearchText] = useState<string>('');
+  const [confirmResetVisible, setConfirmResetVisible] = useState<boolean>(false);
+  const [isDragging, setIsDragging] = useState<boolean>(false);
   
   // Find the selected wall
   const selectedWall = walls.find(wall => wall.id === selectedWallId);
@@ -88,12 +103,20 @@ const CuratorLayoutEditor: React.FC = () => {
   );
   
   // Filter stockpile to only show artworks that aren't already placed
-  const availableArtworks = stockpile.filter(
-    artwork => !placedArtworkIds.includes(artwork.id)
-  ).map(artwork => ({
-    ...artwork,
-    type: 'ARTWORK' as const
-  }));
+  // and filter by search text if provided
+  const availableArtworks = stockpile
+    .filter(artwork => !placedArtworkIds.includes(artwork.id))
+    .filter(artwork => 
+      searchText ? 
+        artwork.title.toLowerCase().includes(searchText.toLowerCase()) || 
+        artwork.artist?.username?.toLowerCase().includes(searchText.toLowerCase()) || 
+        artwork.category.toLowerCase().includes(searchText.toLowerCase())
+        : true
+    )
+    .map(artwork => ({
+      ...artwork,
+      type: 'ARTWORK' as const
+    }));
 
   // Load walls and stockpile data
   const loadData = useCallback(async () => {
@@ -124,6 +147,16 @@ const CuratorLayoutEditor: React.FC = () => {
     loadData();
   }, [loadData]);
   
+  // Auto-hide success message after 3 seconds
+  useEffect(() => {
+    if (successMessage) {
+      const timer = setTimeout(() => {
+        setSuccessMessage(null);
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [successMessage]);
+  
   // Handle wall selection
   const handleWallSelect = (wallId: string) => {
     setSelectedWallId(wallId);
@@ -138,11 +171,11 @@ const CuratorLayoutEditor: React.FC = () => {
       if (editingWall) {
         // Update existing wall
         await updateWall(editingWall.id, values);
-        message.success('Wall updated successfully');
+        setSuccessMessage('Wall updated successfully');
       } else {
         // Create new wall
         await createWall(values);
-        message.success('Wall created successfully');
+        setSuccessMessage('Wall created successfully');
       }
       
       // Reset form and refresh data
@@ -159,7 +192,7 @@ const CuratorLayoutEditor: React.FC = () => {
   const handleWallDelete = async (wallId: string) => {
     try {
       await deleteWall(wallId);
-      message.success('Wall deleted successfully');
+      setSuccessMessage('Wall deleted successfully');
       
       // If the deleted wall was selected, select the first available wall
       if (selectedWallId === wallId) {
@@ -194,7 +227,7 @@ const CuratorLayoutEditor: React.FC = () => {
     if (!wall) return;
     
     // Check if position is already taken
-    const existingPlacement = wall.placements.find(p => p.position === position);
+    const existingPlacement = wall.placements?.find(p => p.position === position);
     if (existingPlacement) {
       message.error('This position is already occupied');
       return;
@@ -204,15 +237,17 @@ const CuratorLayoutEditor: React.FC = () => {
     const artwork = stockpile.find(a => a.id === artworkId);
     if (!artwork) return;
     
+    setSavingLayout(true);
+    
     // Create the placement data
     const layoutData: WallLayoutData = {
       placements: [
         ...wall.placements.map(p => ({
           artworkId: p.artworkId,
           position: p.position,
-          coordinates: p.coordinates,
-          rotation: p.rotation,
-          scale: p.scale
+          ...(p.coordinates && { coordinates: p.coordinates }),
+          ...(p.rotation && { rotation: p.rotation }),
+          ...(p.scale && { scale: p.scale })
         })),
         {
           artworkId,
@@ -224,10 +259,12 @@ const CuratorLayoutEditor: React.FC = () => {
     try {
       // Update the wall layout
       await updateWallLayout(wallId, layoutData);
-      message.success('Artwork placed successfully');
+      setSuccessMessage('Artwork placed successfully');
       loadData();
     } catch (err: any) {
       message.error(err.message || 'Failed to place artwork');
+    } finally {
+      setSavingLayout(false);
     }
   };
   
@@ -235,15 +272,17 @@ const CuratorLayoutEditor: React.FC = () => {
   const handleArtworkRemove = async (placementId: string) => {
     if (!selectedWall) return;
     
+    setSavingLayout(true);
+    
     // Filter out the removed placement
     const updatedPlacements = selectedWall.placements
       .filter(p => p.id !== placementId)
       .map(p => ({
         artworkId: p.artworkId,
         position: p.position,
-        coordinates: p.coordinates,
-        rotation: p.rotation,
-        scale: p.scale
+        ...(p.coordinates && { coordinates: p.coordinates }),
+        ...(p.rotation && { rotation: p.rotation }),
+        ...(p.scale && { scale: p.scale })
       }));
     
     // Create the updated layout data
@@ -254,89 +293,139 @@ const CuratorLayoutEditor: React.FC = () => {
     try {
       // Update the wall layout
       await updateWallLayout(selectedWall.id, layoutData);
-      message.success('Artwork removed successfully');
+      setSuccessMessage('Artwork removed successfully');
       loadData();
     } catch (err: any) {
       message.error(err.message || 'Failed to remove artwork');
+    } finally {
+      setSavingLayout(false);
     }
   };
   
   // Handle layout save to Unity
   const handleSaveLayout = async () => {
-    message.success('Layout saved and ready for the 3D exhibition');
-    // This is where we would trigger the update to the Unity scene
-    // In a real implementation, this might call an API endpoint or use WebSockets
+    try {
+      setSavingLayout(true);
+      
+      // Call API to save the exhibition layout for Unity
+      const result = await saveExhibitionLayout();
+      
+      message.success('Layout saved and ready for the 3D exhibition');
+      setSuccessMessage(result.message || 'Layout successfully pushed to 3D exhibition');
+    } catch (error: any) {
+      message.error(error.message || 'Failed to save layout to 3D exhibition');
+      setError(error.message || 'Failed to save layout. Please try again.');
+    } finally {
+      setSavingLayout(false);
+    }
   };
   
   // Handle layout reset
   const handleResetLayout = async () => {
     if (!selectedWall) return;
     
-    Modal.confirm({
-      title: 'Reset Layout',
-      content: 'Are you sure you want to remove all artworks from this wall?',
-      onOk: async () => {
-        try {
-          // Update with empty placements
-          await updateWallLayout(selectedWall.id, { placements: [] });
-          message.success('Layout reset successfully');
-          loadData();
-        } catch (err: any) {
-          message.error(err.message || 'Failed to reset layout');
-        }
-      }
-    });
+    setConfirmResetVisible(false);
+    setSavingLayout(true);
+    
+    try {
+      // Update with empty placements
+      await updateWallLayout(selectedWall.id, { placements: [] });
+      setSuccessMessage('Layout reset successfully');
+      loadData();
+    } catch (err: any) {
+      message.error(err.message || 'Failed to reset layout');
+    } finally {
+      setSavingLayout(false);
+    }
   };
 
   return (
-    <DndProvider options={DndBackend}>
+    <DndProvider options={dndOptions}>
       <Layout className="min-h-screen">
         <Layout>
+          {/* Stockpile Sidebar */}
           <Sider 
             width={320} 
-            className="bg-white p-4 overflow-auto" 
-            style={{ height: '100vh' }}
+            className="bg-white overflow-auto" 
+            style={{ height: '100vh', position: 'fixed', left: 0, top: 0, bottom: 0 }}
           >
-            <div className="flex justify-between items-center mb-4">
-              <Title level={4} className="my-0">Art Stockpile</Title>
-              <Text type="secondary">
-                {availableArtworks.length} available
-              </Text>
+            <div className="p-4 border-b border-gray-200">
+              <div className="flex justify-between items-center mb-4">
+                <Title level={4} className="my-0">Art Stockpile</Title>
+                <Badge count={availableArtworks.length} overflowCount={999} />
+              </div>
+              
+              <div className="mb-4">
+                <Input 
+                  placeholder="Search artworks..." 
+                  prefix={<SearchOutlined />}
+                  value={searchText}
+                  onChange={(e) => setSearchText(e.target.value)}
+                  allowClear
+                />
+              </div>
+              
+              <Paragraph className="text-gray-500">
+                {availableArtworks.length} approved {availableArtworks.length === 1 ? 'artwork' : 'artworks'} available for placement
+              </Paragraph>
             </div>
             
-            <Divider className="my-2" />
-            
-            {/* Art stockpile */}
-            <div className="overflow-auto" style={{ maxHeight: 'calc(100vh - 120px)' }}>
-              {availableArtworks.map(artwork => (
-                <DraggableArtworkComponent 
-                  key={artwork.id} 
-                  artwork={artwork} 
+            {/* Art stockpile list */}
+            <div className="overflow-auto p-4" style={{ height: 'calc(100vh - 160px)' }}>
+              {availableArtworks.length > 0 ? (
+                <>
+                  {isDragging && (
+                    <Alert
+                      message="Drag to empty slots"
+                      type="info"
+                      showIcon
+                      className="mb-4 sticky top-0 z-10"
+                    />
+                  )}
+                  
+                  {availableArtworks.map(artwork => (
+                    <DraggableArtworkComponent 
+                      key={artwork.id} 
+                      artwork={artwork}
+                      onDragStart={() => setIsDragging(true)}
+                      onDragEnd={() => setIsDragging(false)}
+                    />
+                  ))}
+                </>
+              ) : (
+                <Empty
+                  description={
+                    searchText
+                      ? "No matching artworks found"
+                      : "No available artworks in stockpile"
+                  }
+                  image={Empty.PRESENTED_IMAGE_SIMPLE}
                 />
-              ))}
-              
-              {availableArtworks.length === 0 && (
-                <div className="text-center py-8 text-gray-400">
-                  No available artworks in stockpile
-                </div>
               )}
             </div>
           </Sider>
           
-          <Content className="p-6 overflow-auto">
+          {/* Main Content */}
+          <Content className="p-6 ml-80">
             <div className="mb-6 flex justify-between items-center">
               <Title level={2}>Exhibition Layout Editor</Title>
               
-              <Button 
-                type="primary" 
-                icon={<SaveOutlined />}
-                onClick={handleSaveLayout}
-                disabled={walls.length === 0}
-              >
-                Save Exhibition Layout
-              </Button>
+              <Space>
+                <Tooltip title="Save layout to 3D exhibition">
+                  <Button 
+                    type="primary" 
+                    icon={<SaveOutlined />}
+                    onClick={handleSaveLayout}
+                    disabled={walls.length === 0}
+                    loading={savingLayout}
+                  >
+                    Save Exhibition Layout
+                  </Button>
+                </Tooltip>
+              </Space>
             </div>
             
+            {/* Success/error messages */}
             {error && (
               <Alert 
                 message="Error" 
@@ -344,6 +433,20 @@ const CuratorLayoutEditor: React.FC = () => {
                 type="error" 
                 showIcon 
                 className="mb-4" 
+                closable
+                onClose={() => setError(null)}
+              />
+            )}
+            
+            {successMessage && (
+              <Alert 
+                message="Success" 
+                description={successMessage} 
+                type="success" 
+                showIcon 
+                className="mb-4" 
+                closable
+                onClose={() => setSuccessMessage(null)}
               />
             )}
             
@@ -386,7 +489,11 @@ const CuratorLayoutEditor: React.FC = () => {
                     </div>
                   ) : (
                     <div className="text-center py-8 text-gray-400">
-                      No walls created yet. Add a wall to get started.
+                      <div className="mb-4">
+                        <PlusOutlined style={{ fontSize: 24 }} />
+                      </div>
+                      <p>No walls created yet.</p>
+                      <p>Add a wall to get started.</p>
                     </div>
                   )}
                 </Card>
@@ -399,13 +506,15 @@ const CuratorLayoutEditor: React.FC = () => {
                     <div className="flex justify-between items-center mb-4">
                       <Title level={3}>Wall Layout: {selectedWall.name}</Title>
                       
-                      <Button 
-                        icon={<UndoOutlined />} 
-                        onClick={handleResetLayout}
-                        danger
-                      >
-                        Reset Layout
-                      </Button>
+                      <Tooltip title="Reset wall and remove all artworks">
+                        <Button 
+                          icon={<UndoOutlined />} 
+                          onClick={() => setConfirmResetVisible(true)}
+                          danger
+                        >
+                          Reset Layout
+                        </Button>
+                      </Tooltip>
                     </div>
                     
                     <WallLayout 
@@ -413,17 +522,6 @@ const CuratorLayoutEditor: React.FC = () => {
                       onArtworkPlace={handleArtworkPlace}
                       onArtworkRemove={handleArtworkRemove}
                     />
-                    
-                    <Divider />
-                    
-                    <div className="bg-gray-100 p-4 rounded">
-                      <Title level={5}>Instructions</Title>
-                      <Text>
-                        Drag artworks from the stockpile on the left and drop them onto the wall positions.
-                        Each wall has three positions: Left, Center, and Right.
-                        You can remove an artwork by clicking the X button.
-                      </Text>
-                    </div>
                   </Card>
                 ) : (
                   <Card>
@@ -448,6 +546,28 @@ const CuratorLayoutEditor: React.FC = () => {
                 )}
               </div>
             </div>
+            
+            {/* Help information */}
+            <Card className="mt-6 bg-blue-50">
+              <div className="flex">
+                <InfoCircleOutlined className="text-blue-500 text-lg mr-3 mt-1" />
+                <div>
+                  <Title level={5}>How to Use the Layout Editor</Title>
+                  <Paragraph>
+                    1. <strong>Create Walls:</strong> Add walls that will be part of your exhibition.
+                  </Paragraph>
+                  <Paragraph>
+                    2. <strong>Arrange Artwork:</strong> Drag artwork from the stockpile on the left and drop it onto the wall's left, center, or right position.
+                  </Paragraph>
+                  <Paragraph>
+                    3. <strong>Save Layout:</strong> Once you've arranged all your artwork, click the "Save Exhibition Layout" button to push the changes to the 3D exhibition.
+                  </Paragraph>
+                  <Paragraph>
+                    <strong>Note:</strong> Only approved artwork appears in the stockpile. To approve more artwork, visit the Curator Dashboard.
+                  </Paragraph>
+                </div>
+              </div>
+            </Card>
           </Content>
         </Layout>
       </Layout>
@@ -482,6 +602,24 @@ const CuratorLayoutEditor: React.FC = () => {
             <Input type="number" min={1} placeholder="e.g. 1, 2, 3" />
           </Form.Item>
         </Form>
+      </Modal>
+      
+      {/* Confirm Reset Modal */}
+      <Modal
+        title="Reset Wall Layout"
+        open={confirmResetVisible}
+        onCancel={() => setConfirmResetVisible(false)}
+        onOk={handleResetLayout}
+        okText="Reset"
+        okButtonProps={{ danger: true }}
+        confirmLoading={savingLayout}
+      >
+        <div className="py-2">
+          <ExclamationCircleOutlined className="text-warning text-xl mr-2" />
+          <span>
+            Are you sure you want to remove all artworks from this wall? This action cannot be undone.
+          </span>
+        </div>
       </Modal>
     </DndProvider>
   );
