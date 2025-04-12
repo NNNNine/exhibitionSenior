@@ -1,4 +1,3 @@
-// frontend/src/lib/api/index.ts
 import axios, { AxiosRequestConfig, AxiosError } from 'axios';
 import { refreshToken as refreshTokenAPI } from '@/lib/api/auth';
 
@@ -45,6 +44,9 @@ api.interceptors.request.use(
   }
 );
 
+// Flag to prevent multiple redirects to login
+let hasRedirectedToLogin = false;
+
 // Add a response interceptor to handle token refresh and common errors
 api.interceptors.response.use(
   (response) => {
@@ -60,6 +62,14 @@ api.interceptors.response.use(
 
     // Check for token expiration (401 unauthorized)
     if (error.response?.status === 401 && !originalRequest._retry) {
+      const isLoginRequest = originalRequest.url?.includes('/auth/login');
+      const isRegisterRequest = originalRequest.url?.includes('/auth/register');
+      
+      // Skip token refresh for login/register requests
+      if (isLoginRequest || isRegisterRequest) {
+        return Promise.reject(formatError(error));
+      }
+      
       // If we're not already refreshing, try to refresh
       if (!isRefreshing) {
         isRefreshing = true;
@@ -69,18 +79,9 @@ api.interceptors.response.use(
           const refreshTokenStr = localStorage.getItem('refreshToken');
           
           if (!refreshTokenStr) {
-            // No refresh token, force logout
-            localStorage.removeItem('token');
-            localStorage.removeItem('refreshToken');
-            
-            // Clear cookies for SSR/middleware
-            document.cookie = 'token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax';
-            document.cookie = 'refreshToken=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax';
-            
-            console.log('API Error - No refresh token, cleared tokens from localStorage and cookies');
-            
-            window.location.href = '/auth/login?expired=true';
-            return Promise.reject(formatError(error));
+            console.log('No refresh token available, cannot refresh');
+            // Clean handling of missing refresh token
+            throw new Error('Session expired. Please login again.');
           }
 
           // Try to refresh the token
@@ -109,12 +110,13 @@ api.interceptors.response.use(
             Authorization: `Bearer ${token}`,
           };
           
+          isRefreshing = false;
           return api(originalRequest);
         } catch (refreshError) {
           // Refresh failed, process queue with error
-          processQueue(refreshError);
+          processQueue(refreshError, null);
           
-          // Force logout
+          // Force logout but don't redirect immediately if we've already redirected
           localStorage.removeItem('token');
           localStorage.removeItem('refreshToken');
           
@@ -124,11 +126,22 @@ api.interceptors.response.use(
           
           console.log('API Error - Refresh failed, cleared tokens from localStorage and cookies');
           
-          window.location.href = '/auth/login?expired=true';
+          // Only redirect once to prevent redirect loops
+          if (!hasRedirectedToLogin) {
+            hasRedirectedToLogin = true;
+            setTimeout(() => {
+              // Reset the flag after a delay
+              hasRedirectedToLogin = false;
+            }, 3000);
+            
+            // Check if we're not already on the login page
+            if (!window.location.pathname.includes('/auth/login')) {
+              window.location.href = '/auth/login?expired=true';
+            }
+          }
           
-          return Promise.reject(formatError(refreshError));
-        } finally {
           isRefreshing = false;
+          return Promise.reject(formatError(refreshError));
         }
       } else {
         // If we're already refreshing, add request to queue

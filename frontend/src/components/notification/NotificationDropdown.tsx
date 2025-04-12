@@ -95,14 +95,15 @@ const NotificationDropdown: React.FC = () => {
                     className={`cursor-pointer transition-colors duration-200 hover:bg-gray-50 ${
                       !notification.isRead ? 'bg-blue-50' : ''
                     }`}
-                    style={{ padding: '12px 16px' }}
+                    style={{ padding: '12px 16px', cursor: 'pointer',  }}
                   >
                     <List.Item.Meta
                       avatar={
                         <Avatar
                           icon={notification.sender?.profileUrl ? null : <UserOutlined />}
                           src={notification.sender?.profileUrl}
-                          className="flex items-center justify-center"
+                          className="flex"
+                          style={{ justifyContent: 'center', alignItems: 'center' }}
                         >
                           {getNotificationIcon(notification.type)}
                         </Avatar>
@@ -113,7 +114,7 @@ const NotificationDropdown: React.FC = () => {
                         </div>
                       }
                       description={
-                        <Text type="secondary" className="text-xs">
+                        <Text type="secondary" style={{ fontSize: '0.75rem', lineHeight: 1.33 }} className="text-xs">
                           {formatRelativeTime(notification.createdAt)}
                         </Text>
                       }

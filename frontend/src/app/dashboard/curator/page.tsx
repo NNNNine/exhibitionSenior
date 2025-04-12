@@ -2,28 +2,26 @@
 
 import React, { useState, useEffect } from 'react';
 import { Card, Tabs, Button, Statistic, Table, Tag, message, Spin, Modal, Tooltip, Badge, Alert, Drawer, List, Avatar, Empty, Space, Image } from 'antd';
-import { EnvironmentOutlined, PlusOutlined, CheckCircleOutlined, CloseCircleOutlined, EyeOutlined, EditOutlined, BellOutlined, PictureOutlined } from '@ant-design/icons';
+import { PlusOutlined, CheckCircleOutlined, CloseCircleOutlined, EyeOutlined, BellOutlined, PictureOutlined } from '@ant-design/icons';
 import { useRouter } from 'next/navigation';
 import { withProtectedRoute } from '@/contexts/AuthContext';
 import { UserRole } from '@/types/user.types';
-import { getExhibitions, getArtworks } from '@/lib/api/index';
+import { getExhibition, getArtworks } from '@/lib/api/index';
 import { useNotifications } from '@/contexts/NotificationContext';
-import ExhibitionGrid from '@/components/exhibition/ExhibitionGrid';
+// import ExhibitionGrid from '@/components/exhibition/ExhibitionGrid';
 import { Exhibition } from '@/types/exhibition.types';
 import { Artwork } from '@/types/artwork.types';
-import { formatDate } from '@/utils/format';
+import { formatDate, formatImageUrl } from '@/utils/format';
 import { getSocketClient, authenticateSocket } from '@/lib/socketClient';
 
 const CuratorDashboard: React.FC = () => {
   const router = useRouter();
   const { notifications, unreadCount, markAsRead } = useNotifications();
   
-  const [exhibitions, setExhibitions] = useState<Exhibition[]>([]);
+  const [exhibition, setExhibition] = useState<Exhibition>();
   const [pendingArtworks, setPendingArtworks] = useState<Artwork[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [stats, setStats] = useState({
-    totalExhibitions: 0,
-    activeExhibitions: 0,
     pendingApproval: 0,
     totalArtworks: 0,
   });
@@ -40,11 +38,7 @@ const CuratorDashboard: React.FC = () => {
         setLoading(true);
         
         // Get all exhibitions curated by current user
-        const { exhibitions: fetchedExhibitions } = await getExhibitions({
-          // This would filter by curator ID in a real implementation
-          // curator: currentUser.id,
-          limit: 100,
-        });
+        const fetchedExhibition = await getExhibition();
 
         // Get all artworks pending approval (mock data - would be a status field)
         const { artworks: fetchedArtworks } = await getArtworks({
@@ -54,13 +48,11 @@ const CuratorDashboard: React.FC = () => {
         // For demo purposes, let's assume a portion of artworks are pending approval
         const pendingArts = fetchedArtworks.slice(0, Math.min(5, fetchedArtworks.length));
 
-        setExhibitions(fetchedExhibitions);
+        setExhibition(fetchedExhibition);
         setPendingArtworks(pendingArts);
         
         // Calculate statistics
         setStats({
-          totalExhibitions: fetchedExhibitions.length,
-          activeExhibitions: fetchedExhibitions.filter(ex => ex.isActive).length,
           pendingApproval: pendingArts.length,
           totalArtworks: fetchedArtworks.length,
         });
@@ -163,7 +155,7 @@ const CuratorDashboard: React.FC = () => {
       key: 'thumbnailUrl',
       render: (text: string, record: Artwork) => (
         <Image 
-          src={text || `https://placehold.co/100x100?text=${encodeURIComponent(record.title)}`} 
+          src={formatImageUrl(record.thumbnailUrl || record.fileUrl)}
           alt={record.title} 
           style={{ width: 60, height: 60, objectFit: 'cover' }} 
         />
@@ -262,26 +254,12 @@ const CuratorDashboard: React.FC = () => {
           type="info"
           showIcon
           closable
-          className="mb-6"
+          style={{ marginBottom: '1.5rem' }}
         />
       )}
       
       {/* Statistics Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        <Card>
-          <Statistic 
-            title="Total Exhibitions" 
-            value={stats.totalExhibitions} 
-            prefix={<EnvironmentOutlined />} 
-          />
-        </Card>
-        <Card>
-          <Statistic 
-            title="Active Exhibitions" 
-            value={stats.activeExhibitions} 
-            prefix={<EnvironmentOutlined />} 
-          />
-        </Card>
         <Card>
           <Statistic 
             title="Pending Approval" 
@@ -311,9 +289,9 @@ const CuratorDashboard: React.FC = () => {
           <Button 
             type="primary" 
             icon={<PlusOutlined />} 
-            onClick={() => router.push('/exhibitions/create')}
+            onClick={() => router.push('/exhibitions/edit')}
           >
-            Create New Exhibition
+            Edit Exhibition
           </Button>
           <Button 
             onClick={() => router.push('/profile/edit')}
@@ -324,28 +302,10 @@ const CuratorDashboard: React.FC = () => {
       </div>
       
       {/* Tabs for different views */}
-      <Card className="mt-6">
+      <Card style={{ marginTop: '1.5rem' }}>
         <Tabs 
           defaultActiveKey="pending"
           items={[
-            {
-              key: 'exhibitions',
-              label: 'My Exhibitions',
-              children: (
-                loading ? (
-                  <div className="flex justify-center py-10">
-                    <Spin size="large" />
-                  </div>
-                ) : (
-                  <ExhibitionGrid 
-                    exhibitions={exhibitions} 
-                    columns={3}
-                    showCurator={false}
-                    emptyText="You haven't created any exhibitions yet"
-                  />
-                )
-              )
-            },
             {
               key: 'pending',
               label: (
@@ -366,7 +326,7 @@ const CuratorDashboard: React.FC = () => {
                           Dismiss
                         </Button>
                       }
-                      className="mb-4"
+                      style={{ marginBottom: '1rem' }}
                     />
                   )}
                   
@@ -385,24 +345,6 @@ const CuratorDashboard: React.FC = () => {
                 </div>
               )
             },
-            {
-              key: 'active',
-              label: 'Active Exhibitions',
-              children: (
-                loading ? (
-                  <div className="flex justify-center py-10">
-                    <Spin size="large" />
-                  </div>
-                ) : (
-                  <ExhibitionGrid 
-                    exhibitions={exhibitions.filter(ex => ex.isActive)} 
-                    columns={3}
-                    showCurator={false}
-                    emptyText="You don't have any active exhibitions"
-                  />
-                )
-              )
-            }
           ]}
         />
       </Card>
@@ -411,9 +353,9 @@ const CuratorDashboard: React.FC = () => {
       <Drawer
         title={
           <div className="flex items-center">
-            <BellOutlined className="mr-2" />
-            <span>Notifications</span>
-            <Badge count={unreadCount} className="ml-2" />
+            <BellOutlined style={{ marginRight: '0.5rem' }} />
+              <span>Notifications</span>
+            <Badge count={unreadCount} style={{ marginLeft: '0.5rem' }} />
           </div>
         }
         placement="right"
@@ -431,10 +373,12 @@ const CuratorDashboard: React.FC = () => {
                   handleNotificationClick(notification);
                   setNotificationDrawerOpen(false);
                 }}
-                className={`cursor-pointer transition-colors duration-200 hover:bg-gray-50 ${
-                  !notification.isRead ? 'bg-blue-50' : ''
-                }`}
-              >
+                style={{
+                  cursor: 'pointer',
+                  transition: 'background-color 0.2s',
+                  backgroundColor: !notification.isRead ? '#e6f7ff' : 'transparent',
+                }}
+                >
                 <List.Item.Meta
                   avatar={
                     <Avatar icon={<PictureOutlined />} />

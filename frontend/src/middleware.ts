@@ -17,9 +17,19 @@ const parseToken = (token: string): { id: string; role: UserRole } | null => {
   }
 };
 
+// Check if this is a login or registration page
+const isAuthPage = (path: string): boolean => {
+  return path.startsWith('/auth/') || path === '/auth';
+};
+
 export async function middleware(request: NextRequest) {
   // Get the current path
   const path = request.nextUrl.pathname;
+  
+  // Skip middleware for auth pages
+  if (isAuthPage(path)) {
+    return NextResponse.next();
+  }
   
   // Check if this is a protected route
   const routeConfig = getRouteConfig(path);
@@ -48,6 +58,10 @@ export async function middleware(request: NextRequest) {
   if (!userData || !userData.role) {
     const loginUrl = new URL('/auth/login', request.url);
     loginUrl.searchParams.set('redirectTo', encodeURIComponent(request.url));
+    // Add expired=true param only if token was present but invalid
+    if (token) {
+      loginUrl.searchParams.set('expired', 'true');
+    }
     
     return NextResponse.redirect(loginUrl);
   }

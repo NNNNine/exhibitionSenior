@@ -33,8 +33,15 @@ api.interceptors.response.use(
   (error) => {
     // Handle token expiration
     if (error.response && error.response.status === 401) {
+      // Clear tokens from localStorage
       localStorage.removeItem('token');
-      window.location.href = '/login?expired=true';
+      localStorage.removeItem('refreshToken');
+      
+      // Clear tokens from cookies
+      document.cookie = 'token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax';
+      document.cookie = 'refreshToken=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax';
+      
+      window.location.href = '/auth/login?expired=true';
     }
     
     // Format the error message

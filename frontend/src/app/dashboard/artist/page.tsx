@@ -132,12 +132,12 @@ const ArtistDashboard: React.FC = () => {
         <Alert
           message={
             <div className="flex items-center justify-between">
-              <span>
-                <CheckCircleOutlined className="mr-2 text-green-500" />
-                {approvalNotifications.length === 1 
-                  ? 'One of your artworks was recently approved!' 
-                  : `${approvalNotifications.length} of your artworks were recently approved!`}
-              </span>
+                <span style={{ display: 'flex', alignItems: 'center', color: '#52c41a' }}>
+                  <CheckCircleOutlined style={{ marginRight: 8 }} />
+                  {approvalNotifications.length === 1 
+                    ? 'One of your artworks was recently approved!' 
+                    : `${approvalNotifications.length} of your artworks were recently approved!`}
+                </span>
               <Button 
                 size="small" 
                 type="primary"
@@ -151,6 +151,7 @@ const ArtistDashboard: React.FC = () => {
           showIcon={false}
           closable
           className="mb-6"
+          style={{ marginBottom: '1.5rem' }}
         />
       )}
       
@@ -169,7 +170,7 @@ const ArtistDashboard: React.FC = () => {
               <div className="flex items-center">
                 <span>Pending Approval</span>
                 {pendingArtworks.length > 0 && (
-                  <Badge status="processing" className="ml-2" />
+                  <Badge status="processing" style={{ marginLeft: '0.5rem' }} />
                 )}
               </div>
             }
@@ -183,7 +184,7 @@ const ArtistDashboard: React.FC = () => {
               <div className="flex items-center">
                 <span>Approved Artworks</span>
                 {approvalNotifications.length > 0 && (
-                  <Badge count={approvalNotifications.length} className="ml-2" />
+                  <Badge count={approvalNotifications.length} style={{ marginLeft: '0.5rem' }} />
                 )}
               </div>
             }
@@ -221,7 +222,7 @@ const ArtistDashboard: React.FC = () => {
       </div>
       
       {/* Tabs for different artwork views */}
-      <Card className="mt-6">
+      <Card style={{ marginTop: '1.5rem' }}>
         <Tabs 
           defaultActiveKey="all"
           items={[

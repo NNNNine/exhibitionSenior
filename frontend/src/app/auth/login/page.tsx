@@ -8,7 +8,8 @@ import {
   Checkbox, 
   message, 
   Divider,
-  Alert 
+  Alert,
+  App 
 } from 'antd';
 import { 
   UserOutlined, 
@@ -33,12 +34,13 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null);
   const { login, user } = useAuthContext();
   const router = useRouter();
+  const { message: messageApi } = App.useApp();
 
   const onFinish = async (values: LoginFormValues) => {
     setLoading(true);
     try {
       await login(values.email, values.password);
-      message.success('Login successful!');
+      messageApi.success('Login successful!');
       // Redirection is handled in the login function based on user role
       if (user) {
         switch (user.role) {

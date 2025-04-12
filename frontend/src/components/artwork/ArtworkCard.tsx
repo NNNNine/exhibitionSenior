@@ -7,7 +7,7 @@ import Link from 'next/link';
 import { formatDistanceToNow } from 'date-fns';
 import { formatImageUrl } from '@/utils/format';
 import { EyeOutlined, HeartOutlined, HeartFilled, CommentOutlined } from '@ant-design/icons';
-import { Artwork, ArtworkWithLikes } from '@/types/artwork.types';
+import { ArtworkWithLikes } from '@/types/artwork.types';
 
 const { Meta } = Card;
 const { Text } = Typography;
@@ -45,7 +45,7 @@ const ArtworkCard: React.FC<ArtworkCardProps> = ({ artwork, onLikeClick }) => {
   };
 
   // Generate a placeholder if image is not available
-  const imageUrl = formatImageUrl(thumbnailUrl) || `https://placehold.co/300x300?text=${encodeURIComponent(title)}`;
+  const imageUrl = formatImageUrl(thumbnailUrl || artwork.fileUrl)
 
   return (
     <motion.div
@@ -55,18 +55,30 @@ const ArtworkCard: React.FC<ArtworkCardProps> = ({ artwork, onLikeClick }) => {
       <Link href={`/artworks/${id}`}>
         <Card
           hoverable
-          className="overflow-hidden transition-shadow duration-300 hover:shadow-lg"
+          className="hover:shadow-lg"
+          style={{ 
+            overflow: 'hidden', 
+            transitionProperty: 'box-shadow', 
+            transitionTimingFunction: 'cubic-bezier(0.4, 0, 0.2, 1)',
+            transitionDuration: '150ms',
+          }}
           cover={
-            <div className="relative h-48 overflow-hidden">
+            <div style={{ position: 'relative', height: '12rem', overflow: 'hidden' }}>
               <Image
                 src={imageUrl}
                 alt={title}
                 fill
                 sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                className="object-cover transition-transform duration-500 hover:scale-110"
+                style={{
+                  objectFit: 'cover',
+                  transition: 'transform 0.5s',
+                }}
+                onMouseEnter={(e) => (e.currentTarget.style.transform = 'scale(1.1)')}
+                onMouseLeave={(e) => (e.currentTarget.style.transform = 'scale(1)')}
               />
-              <div className="absolute top-2 right-2">
-                <Tag color="blue">{category}</Tag>
+
+              <div style={{ position: 'absolute', top: '0.5rem', right: '0.5rem' }}>
+               <Tag color="blue">{category}</Tag>
               </div>
             </div>
           }
@@ -95,17 +107,25 @@ const ArtworkCard: React.FC<ArtworkCardProps> = ({ artwork, onLikeClick }) => {
                 <div className="mb-2">
                   <Text type="secondary">By </Text>
                   <Link href={`/profile/${artist?.username}`}>
-                    <Text strong className="text-blue-600 hover:text-blue-800">
+                    <Text 
+                      strong 
+                      style={{ color: '#1d4ed8', cursor: 'pointer', textDecoration: 'none' }}
+                      onMouseEnter={(e) => (e.currentTarget.style.color = '#1e40af')}
+                      onMouseLeave={(e) => (e.currentTarget.style.color = '#1d4ed8')}
+                    >
                       {artist?.username || 'Unknown Artist'}
                     </Text>
                   </Link>
                 </div>
-                <Text type="secondary" className="text-xs">
+                <Text type="secondary" style={{ fontSize: '0.75rem' }}>
                   {formattedDate}
                 </Text>
                 <div className="mt-2 space-x-1">
                   {tags.slice(0, 3).map(tag => (
-                    <Tag key={tag} className="mr-1">
+                    <Tag 
+                      key={tag} 
+                      style={{ marginRight: '0.25rem' }}
+                    >
                       {tag}
                     </Tag>
                   ))}

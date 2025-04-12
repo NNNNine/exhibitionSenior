@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Form, Input, Button, Upload, Select, DatePicker, message, Alert, Image } from 'antd';
-import { InboxOutlined, UploadOutlined } from '@ant-design/icons';
+import { InboxOutlined } from '@ant-design/icons';
 import moment from 'moment';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { ArtworkCreateData } from '@/types/artwork.types';
@@ -229,7 +229,7 @@ const ArtworkUploadForm: React.FC<ArtworkUploadFormProps> = ({
         description="Your uploaded artwork will be reviewed by a curator before being displayed in exhibitions. This process may take up to 48 hours."
         type="info"
         showIcon
-        className="mb-6"
+        style={{ marginBottom: '1.5rem' }}
       />
 
       <Form.Item>

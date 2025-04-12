@@ -1,7 +1,7 @@
 'use client'
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
-import { Card, Spin, Button, Alert, Result } from 'antd';
+import { Card, Spin, Button, Result } from 'antd';
 import { User, UserRole } from '@/types/user.types';
 import * as authApi from '@/lib/api/auth';
 
@@ -29,11 +29,19 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
   // const pathname = usePathname();
+  const [loggedOut, setLoggedOut] = useState<boolean>(false);
 
   // Check if user is already logged in on initial load
   useEffect(() => {
     const checkAuth = async () => {
       try {
+        // Skip auth check if user just logged out
+        if (loggedOut) {
+          setInitialLoading(false);
+          setLoading(false);
+          return;
+        }
+        
         // Debug token state
         console.log('Auth Check - localStorage token:', localStorage.getItem('token'));
         console.log('Auth Check - cookies:', document.cookie);
@@ -68,7 +76,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     };
 
     checkAuth();
-  }, []);
+    // Reset loggedOut flag after auth check
+    if (loggedOut) {
+      setLoggedOut(false);
+    }
+  }, [loggedOut]);
 
   // Handle login
   const login = async (email: string, password: string) => {
@@ -156,10 +168,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     
     console.log('Logout - Tokens cleared from localStorage and cookies');
     
-    // Reset user state
+    // Reset user state and set loggedOut flag
     setUser(null);
+    setLoggedOut(true);
     
-    // Redirect to login page
+    // Redirect to login page without expired parameter
     router.push('/auth/login');
   };
 

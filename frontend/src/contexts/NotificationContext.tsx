@@ -206,6 +206,8 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
   // Get unread notifications
   const getNotifications = async () => {
+    if (!isAuthenticated) return;
+    
     try {
       setLoading(true);
       const { notifications: fetchedNotifications, count } = await getUnreadNotifications();
@@ -213,6 +215,7 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
       setUnreadCount(count);
     } catch (error) {
       console.error('Error fetching notifications:', error);
+      // Don't update state if there's an error, keep showing existing notifications
     } finally {
       setLoading(false);
     }

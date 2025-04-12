@@ -20,7 +20,7 @@ import {
 import { useAuthContext } from '@/contexts/AuthContext';
 import NotificationDropdown from '@/components/notification/NotificationDropdown';
 import { UserRole } from '@/types/user.types';
-import { getUnreadNotifications } from '@/lib/api/notification';
+import { useNotifications } from '@/contexts/NotificationContext';
 
 const { Header, Content, Footer } = AntLayout;
 
@@ -35,7 +35,9 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isClient, setIsClient] = useState(false);
   const [activeExhibition, setActiveExhibition] = useState(false);
-  const [unreadCount, setUnreadCount] = useState(0);
+  
+  // Use the notifications context instead of direct API calls
+  const { unreadCount } = useNotifications();
 
   // Simulate an active exhibition notification
   useEffect(() => {
@@ -46,21 +48,6 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   // Ensure component only renders on client
   useEffect(() => {
     setIsClient(true);
-  }, []);
-
-  // Simulate fetching unread notifications count
-  useEffect(() => {
-    const fetchUnreadCount = async () => {
-      try {
-        // Simulate an API call to fetch unread notifications count
-        const response = await getUnreadNotifications();
-        setUnreadCount(response.count);
-      }
-      catch (error) {
-        console.error('Error fetching unread notifications:', error);
-      }
-    };
-    fetchUnreadCount();
   }, []);
 
   // Get current selected menu item based on pathname
@@ -180,7 +167,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
       icon: <LogoutOutlined />,
       onClick: () => logout(),
     },
-  ], [user, logout, router]);
+  ], [user, logout, router, unreadCount]);
 
   // Prevent hydration errors by rendering nothing on initial server-side render
   if (!isClient) {
@@ -228,20 +215,24 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
             {isAuthenticated ? (
               <>
                 {/* Notifications Dropdown */}
-                <div className="hidden md:block mr-4">
+                <div className="md:block mr-4">
                   <NotificationDropdown />
                 </div>
                 
                 {/* User Dropdown */}
                 <Dropdown menu={{ items: userMenuItems }} placement="bottomRight">
-                  <Button type="text" className="flex items-center text-white">
+                  <Button 
+                  type="text" 
+                  className="flex"
+                  style={{ alignItems: 'center', color: 'white' }}
+                  >
                     <Avatar
                       size="small"
                       icon={<UserOutlined />}
                       src={user?.profileUrl}
-                      className="mr-2"
+                      style={{ marginRight: '0.5rem' }}
                     />
-                    <span className="hidden sm:inline">{user?.username}</span>
+                    <span className="sm:inline">{user?.username}</span>
                   </Button>
                 </Dropdown>
               </>
