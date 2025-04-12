@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Card, message } from 'antd';
+import { Card, message, Alert } from 'antd';
 import { withProtectedRoute } from '@/contexts/AuthContext';
 import { UserRole } from '@/types/user.types';
 import ArtworkUploadForm from '@/components/artwork/ArtworkUploadForm';
@@ -11,6 +11,7 @@ import { createArtwork } from '@/lib/api/index';
 const ArtworkUploadPage: React.FC = () => {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const handleSubmit = async (formData: FormData) => {
     setLoading(true);
@@ -20,8 +21,12 @@ const ArtworkUploadPage: React.FC = () => {
       
       // Redirect to artwork detail page
       router.push(`/artworks/${artwork.id}`);
-    } catch (error: any) {
-      message.error(error.message || 'Failed to upload artwork');
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError('Failed to upload artwork');
+      }
     } finally {
       setLoading(false);
     }
@@ -33,6 +38,17 @@ const ArtworkUploadPage: React.FC = () => {
       
       <Card>
         <ArtworkUploadForm onSubmit={handleSubmit} loading={loading} />
+        
+        {/* Error Message */}
+        {error && (
+          <Alert
+            message="Error"
+            description={error}
+            type="error"
+            showIcon
+            className="mb-6"
+          />
+        )}
       </Card>
     </div>
   );

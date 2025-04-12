@@ -96,9 +96,12 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       
       // Redirect based on user role or to the requested page
       redirectUserBasedOnRole(user.role);
-    } catch (err: any) {
-      setError(err.message);
-      throw err;
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError('Failed to login');
+      }
     } finally {
       setLoading(false);
     }
@@ -130,9 +133,12 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       
       // Redirect to appropriate dashboard
       redirectUserBasedOnRole(user.role);
-    } catch (err: any) {
-      setError(err.message);
-      throw err;
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError('Failed to register');
+      }
     } finally {
       setLoading(false);
     }

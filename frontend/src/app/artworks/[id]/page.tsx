@@ -51,9 +51,13 @@ const ArtworkDetailPage: React.FC = () => {
         const artworkData = await getArtworkById(id as string);
         console.log('Fetched artwork:', artworkData);
         setArtwork(artworkData);
-      } catch (err: any) {
-        setError(err.message);
-      } finally {
+      } catch (err: unknown) {
+        if (err instanceof Error) {
+          setError(err.message);
+        } else {
+          setError('An unexpected error occurred');
+        }
+       } finally {
         setLoading(false);
       }
     };
@@ -67,9 +71,13 @@ const ArtworkDetailPage: React.FC = () => {
     try {
       await deleteArtwork(id as string);
       message.success('Artwork deleted successfully');
-      router.push('/artist'); // Redirect to artist dashboard
-    } catch (err: any) {
-      message.error(err.message || 'Failed to delete artwork');
+      router.push('/dashboard/artist'); // Redirect to artist dashboard
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError('Failed to delete artwork');
+      }
     }
   };
 
@@ -103,8 +111,12 @@ const ArtworkDetailPage: React.FC = () => {
       
       setCommentText('');
       message.success('Comment added');
-    } catch (err: any) {
-      message.error(err.message || 'Failed to add comment');
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError('Failed to add comment');
+      }
     } finally {
       setSubmittingComment(false);
     }
@@ -149,7 +161,7 @@ const ArtworkDetailPage: React.FC = () => {
         />
         <Button 
           onClick={() => router.push('/artworks')} 
-          className="mt-4"
+          style={{ marginTop: '1rem', }}
           icon={<ArrowLeftOutlined />}
         >
           Browse All Artworks
@@ -159,7 +171,7 @@ const ArtworkDetailPage: React.FC = () => {
   }
 
   const isArtist = user?.id === artwork.artistId;
-  const isCurator = user?.role === 'curator';
+  // const isCurator = user?.role === 'curator';
   const isAdmin = user?.role === 'admin';
   const canEdit = isArtist || isAdmin;
   const canDelete = isArtist || isAdmin;
@@ -168,7 +180,7 @@ const ArtworkDetailPage: React.FC = () => {
     <div className="max-w-6xl mx-auto py-8 px-4">
       <Button 
         onClick={() => router.back()} 
-        className="mb-6"
+        style={{ marginBottom: '1.5rem' }}
         icon={<ArrowLeftOutlined />}
       >
         Back
@@ -177,7 +189,10 @@ const ArtworkDetailPage: React.FC = () => {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Artwork Image */}
         <div className="lg:col-span-2">
-          <Card className="mb-6 overflow-hidden">
+          <Card style={{
+            marginBottom: '1.5rem',
+            overflow: 'hidden',
+          }}>
             <div className="flex justify-center">
               <Image
                 src={formatImageUrl(artwork.fileUrl)}
@@ -289,14 +304,14 @@ const ArtworkDetailPage: React.FC = () => {
         
         {/* Artwork Info */}
         <div className="lg:col-span-1">
-          <Card>
+          <Card style={{ width: '110%' }}>
             <h1 className="text-2xl font-bold mb-2">{artwork.title}</h1>
             
             <div className="flex items-center mb-4">
               <Avatar 
                 icon={<UserOutlined />} 
                 src={artwork.artist?.profileUrl}
-                className="mr-2"
+                style={{ marginRight: '0.5rem' }}
               />
               <span 
                 className="text-blue-600 cursor-pointer hover:underline"
@@ -353,7 +368,7 @@ const ArtworkDetailPage: React.FC = () => {
             {/* Show in which exhibitions this artwork appears */}
             {artwork.exhibitionItems && artwork.exhibitionItems.length > 0 && (
               <div className="mt-6">
-                <h3 className="font-bold mb-2">Featured in Exhibitions</h3>
+                <h3 className="font-bold mb-3">Featured in Exhibitions</h3>
                 <List
                   size="small"
                   dataSource={artwork.exhibitionItems}

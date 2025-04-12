@@ -7,25 +7,21 @@ import {
   Select, 
   Button, 
   Pagination, 
-  Tag, 
   Spin, 
   Empty, 
   Divider,
   Collapse,
   Checkbox,
   Radio,
-  Slider,
   Alert
 } from 'antd';
 import { 
-  SearchOutlined, 
-  FilterOutlined, 
-  SortAscendingOutlined, 
+  FilterOutlined,
   PictureOutlined 
 } from '@ant-design/icons';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 import { getArtworks } from '@/lib/api';
-import { Artwork } from '@/types/artwork.types';
+import { Artwork, ArtworkParams } from '@/types/artwork.types';
 import ArtworkGrid from '@/components/artwork/ArtworkGrid';
 
 const { Search } = Input;
@@ -33,7 +29,6 @@ const { Option } = Select;
 
 
 const ArtworksPage: React.FC = () => {
-  const router = useRouter();
   const searchParams = useSearchParams();
   
   // Parse query parameters
@@ -47,7 +42,7 @@ const ArtworksPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [totalArtworks, setTotalArtworks] = useState<number>(0);
   const [currentPage, setCurrentPage] = useState<number>(initialPage);
-  const [pageSize, setPageSize] = useState<number>(12);
+  const [pageSize] = useState<number>(12);
   
   // State for filters
   const [searchQuery, setSearchQuery] = useState<string>(initialSearch);
@@ -83,35 +78,35 @@ const ArtworksPage: React.FC = () => {
     
     try {
       // Construct query parameters
-      const params: any = {
+      const params: ArtworkParams = {
         page,
         limit: pageSize,
       };
       
       if (searchQuery) params.search = searchQuery;
       if (selectedCategory) params.category = selectedCategory;
-      if (selectedTags.length > 0) params.tags = selectedTags.join(',');
+      if (selectedTags.length > 0) params.tags = selectedTags;
       
       // Sort order
-      switch (sortBy) {
-        case 'oldest':
-          params.sort = 'creationDate';
-          params.order = 'asc';
-          break;
-        case 'title_asc':
-          params.sort = 'title';
-          params.order = 'asc';
-          break;
-        case 'title_desc':
-          params.sort = 'title';
-          params.order = 'desc';
-          break;
-        case 'newest':
-        default:
-          params.sort = 'creationDate';
-          params.order = 'desc';
-          break;
-      }
+      // switch (sortBy) {
+      //   case 'oldest':
+      //     params.sort = 'creationDate';
+      //     params.order = 'asc';
+      //     break;
+      //   case 'title_asc':
+      //     params.sort = 'title';
+      //     params.order = 'asc';
+      //     break;
+      //   case 'title_desc':
+      //     params.sort = 'title';
+      //     params.order = 'desc';
+      //     break;
+      //   case 'newest':
+      //   default:
+      //     params.sort = 'creationDate';
+      //     params.order = 'desc';
+      //     break;
+      // }
       
       const { artworks: fetchedArtworks, pagination } = await getArtworks(params);
       
@@ -125,8 +120,12 @@ const ArtworksPage: React.FC = () => {
         category: selectedCategory || null,
         page: page === 1 ? null : page,
       });
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError('Failed to delete artwork');
+      }
     } finally {
       setLoading(false);
     }
@@ -145,8 +144,8 @@ const ArtworksPage: React.FC = () => {
   };
   
   // Handle tag selection
-  const handleTagChange = (tags: string[]) => {
-    setSelectedTags(tags);
+  const handleTagChange = (tags: Array<string | number>) => {
+    setSelectedTags(tags as string[]);
     setCurrentPage(1); // Reset to first page on new filter
   };
   
@@ -199,7 +198,7 @@ const ArtworksPage: React.FC = () => {
 
   return (
     <div className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
-      <div className="mb-8">
+      <div className="mb-4">
         <h1 className="text-3xl font-bold mb-2">Discover Artworks</h1>
         <p className="text-gray-500">
           Explore unique artworks from artists around the world
@@ -209,8 +208,8 @@ const ArtworksPage: React.FC = () => {
       <div className="flex flex-col lg:flex-row gap-6">
         {/* Filters Sidebar */}
         <div className="w-full lg:w-1/4">
-          <Card className="sticky top-24">
-            <div className="mb-6">
+          <Card className="sticky">
+            <div className="mb-4">
               <h2 className="text-lg font-semibold mb-2">Search</h2>
               <Search
                 placeholder="Search by title or description"
@@ -221,7 +220,7 @@ const ArtworksPage: React.FC = () => {
               />
             </div>
             
-            <Divider />
+            <Divider className="my-3" />
             
             <Collapse 
               defaultActiveKey={['category', 'sort']}
@@ -230,7 +229,7 @@ const ArtworksPage: React.FC = () => {
                   key: 'category',
                   label: 'Category',
                   children: (
-                    <div className="mb-4">
+                    <div className="mb-3">
                       <Select
                         placeholder="Select Category"
                         value={selectedCategory || undefined}
@@ -254,7 +253,7 @@ const ArtworksPage: React.FC = () => {
                     <Checkbox.Group
                       options={tags.map(tag => ({ label: tag, value: tag }))}
                       value={selectedTags}
-                      onChange={handleTagChange as any}
+                      onChange={handleTagChange}
                       className="flex flex-col space-y-2"
                     />
                   )
@@ -278,7 +277,7 @@ const ArtworksPage: React.FC = () => {
               ]}
             />
             
-            <div className="mt-6 flex flex-col space-y-3">
+            <div className="mt-4 flex flex-col space-y-2">
               <Button
                 type="primary"
                 onClick={applyFilters}
@@ -297,7 +296,7 @@ const ArtworksPage: React.FC = () => {
         {/* Main Content */}
         <div className="w-full lg:w-3/4">
           {/* Result Stats and Actions */}
-          <div className="mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center">
+          <div className="mb-4 flex flex-col sm:flex-row justify-between items-start sm:items-center">
             <div>
               {!loading && (
                 <p className="text-gray-500">
@@ -306,7 +305,7 @@ const ArtworksPage: React.FC = () => {
               )}
             </div>
             
-            <div className="mt-3 sm:mt-0 w-full sm:w-auto">
+            <div className="mt-2 sm:mt-0 w-full sm:w-auto">
               <Select
                 value={sortBy}
                 onChange={handleSortChange}

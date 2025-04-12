@@ -151,17 +151,17 @@ export default function Home() {
               {recentArtworks.map((artwork) => (
                 <Col xs={24} sm={12} md={8} key={artwork.id}>
                     <Card
-                    hoverable
-                    cover={
-                      <Image
-                      alt={artwork.title}
-                      src={formatImageUrl(artwork.thumbnailUrl || artwork.fileUrl)}
-                      className="h-48 w-full object-cover"
-                      width={400}
-                      height={300}
-                      />
-                    }
-                    onClick={() => router.push(`/artworks/${artwork.id}`)}
+                      hoverable
+                      cover={
+                        <Image
+                          alt={artwork.title}
+                          src={formatImageUrl(artwork.thumbnailUrl || artwork.fileUrl)}
+                          className="h-48 w-full object-cover"
+                          width={400}
+                          height={300}
+                        />
+                      }
+                      onClick={() => router.push(`/artworks/${artwork.id}`)}
                     >
                     <Card.Meta
                       title={artwork.title}

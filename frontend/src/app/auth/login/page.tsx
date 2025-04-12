@@ -7,7 +7,8 @@ import {
   Button, 
   Checkbox, 
   message, 
-  Divider 
+  Divider,
+  Alert 
 } from 'antd';
 import { 
   UserOutlined, 
@@ -19,6 +20,7 @@ import { motion } from 'framer-motion';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuthContext } from '@/contexts/AuthContext';
+import { UserRole } from '@/types/user.types';
 
 interface LoginFormValues {
   email: string;
@@ -28,7 +30,8 @@ interface LoginFormValues {
 
 export default function LoginPage() {
   const [loading, setLoading] = useState<boolean>(false);
-  const { login } = useAuthContext();
+  const [error, setError] = useState<string | null>(null);
+  const { login, user } = useAuthContext();
   const router = useRouter();
 
   const onFinish = async (values: LoginFormValues) => {
@@ -37,14 +40,28 @@ export default function LoginPage() {
       await login(values.email, values.password);
       message.success('Login successful!');
       // Redirection is handled in the login function based on user role
-      
-    } catch (error) {
-      console.error('Login error:', error);
-      message.error(
-        error instanceof Error 
-          ? error.message 
-          : 'Login failed. Please check your credentials.'
-      );
+      if (user) {
+        switch (user.role) {
+          case UserRole.ARTIST:
+            router.push('/artist/dashboard');
+            break;
+          case UserRole.CURATOR:
+            router.push('/curator/dashboard');
+            break;
+          case UserRole.ADMIN:
+            router.push('/admin/dashboard');
+            break;
+          default:
+            router.push('/');
+        }
+      }  
+
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError('Failed to upload artwork');
+      }
     } finally {
       setLoading(false);
     }
@@ -64,7 +81,7 @@ export default function LoginPage() {
           </h2>
           <p className="mt-2 text-center text-sm text-gray-600">
             Or{' '}
-            <Link href="/auth/register" className="font-medium text-blue-600 hover:text-blue-500">
+            <Link href="/auth/register" className="font-medium text-violet-600 hover:text-violet-500">
               create a new account
             </Link>
           </p>
@@ -88,7 +105,7 @@ export default function LoginPage() {
               prefix={<UserOutlined className="site-form-item-icon" />} 
               placeholder="Email address"
               size="large"
-              className="rounded-md"
+              style={{ borderRadius: '0.375rem' }} // Tailwind CSS rounded-md
             />
           </Form.Item>
 
@@ -100,7 +117,7 @@ export default function LoginPage() {
               prefix={<LockOutlined className="site-form-item-icon" />}
               placeholder="Password"
               size="large"
-              className="rounded-md"
+              style={{ borderRadius: '0.375rem' }} // Tailwind CSS rounded-md
             />
           </Form.Item>
 
@@ -120,7 +137,7 @@ export default function LoginPage() {
               htmlType="submit"
               size="large"
               loading={loading}
-              className="w-full"
+              style={{ width: '100%' }}
             >
               Sign in
             </Button>
@@ -129,11 +146,12 @@ export default function LoginPage() {
 
         <Divider>Or sign in with</Divider>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="flex grid grid-cols-2 gap-4">
           <Button
             icon={<GoogleOutlined />}
             size="large"
-            className="flex items-center justify-center"
+            // className="flex items-center justify-center"
+            style={{ justifyContent: 'center', alignItems: 'center' }}
             onClick={() => message.info('Google authentication coming soon')}
           >
             Google
@@ -142,13 +160,25 @@ export default function LoginPage() {
           <Button
             icon={<FacebookOutlined />}
             size="large"
-            className="flex items-center justify-center"
+            // className="flex items-center justify-center"
+            style={{ justifyContent: 'center', alignItems: 'center' }}
             onClick={() => message.info('Facebook authentication coming soon')}
           >
             Facebook
           </Button>
         </div>
       </motion.div>
+
+      {/* Error Message */}
+      {error && (
+        <Alert
+          message="Error"
+          description={error}
+          type="error"
+          showIcon
+          className="mb-6"
+        />
+      )}
     </div>
   );
 }

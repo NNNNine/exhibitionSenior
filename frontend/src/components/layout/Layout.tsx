@@ -139,13 +139,8 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
       icon: <PictureOutlined />,
     },
     {
-      key: 'exhibitions',
-      label: <Link href="/exhibitions">Exhibitions</Link>,
-      icon: <EnvironmentOutlined />,
-    },
-    {
-      key: 'metaverse',
-      label: <Link href="/metaverse/view">3D Exhibition</Link>,
+      key: 'exhibition',
+      label: <Link href="/exhibitions">Exhibition</Link>,
       icon: <EnvironmentOutlined />,
     },
   ], [activeExhibition]);

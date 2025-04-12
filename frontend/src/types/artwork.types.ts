@@ -104,3 +104,16 @@ export interface ArtworkUpdateData {
   status?: ArtworkStatus;
   image?: File;
 }
+
+/**
+ * ArtworkParams interface - represents the query parameters used for filtering and searching artworks.
+ */
+export interface ArtworkParams {
+  category?: string;
+  artist?: string;
+  tags?: string[];
+  search?: string;
+  page?: number;
+  limit?: number;
+  status?: string;
+}

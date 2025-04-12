@@ -1,8 +1,7 @@
 'use client';
 
-// src/components/artwork/ArtworkGrid.tsx
 import React from 'react';
-import { Card, Empty, Spin, Tag } from 'antd';
+import { Card, Empty, Spin, Tag, Image } from 'antd';
 import { useRouter } from 'next/navigation';
 import { Artwork } from '@/types/artwork.types';
 import { formatImageUrl } from '@/utils/format';
@@ -73,10 +72,12 @@ const ArtworkGrid: React.FC<ArtworkGridProps> = ({
           onClick={() => handleArtworkClick(artwork)}
           cover={
             <div className="aspect-w-1 aspect-h-1 overflow-hidden bg-gray-100">
-              <img
+              <Image
                 alt={artwork.title}
                 src={formatImageUrl(artwork.thumbnailUrl || artwork.fileUrl)}
-                className="object-cover w-full h-full"
+                className="h-full w-full object-cover"
+                width={300}
+                height={300}
               />
             </div>
           }
