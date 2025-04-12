@@ -1,21 +1,31 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
-import jwt from 'jsonwebtoken';
 import { getRouteConfig } from './config/routes';
 import { UserRole } from './types/user.types';
+import { jwtVerify } from 'jose';
 
-// Function to parse JWT token
-const parseToken = (token: string): { id: string; role: UserRole } | null => {
+interface DecodedToken {
+  id: string;
+  role: UserRole;
+}
+
+// Function to parse and verify JWT token
+async function parseToken(token: string): Promise<DecodedToken | null> {
   try {
-    // In a real app, you'd verify with the same secret used on the backend
-    // This is a simple decode for middleware (real verification happens on API calls)
-    const decoded = jwt.decode(token) as { id: string; role: UserRole };
-    return decoded;
+    const secret = new TextEncoder().encode(process.env.JWT_SECRET as string);
+    
+    // jose uses a different API than jsonwebtoken
+    const { payload } = await jwtVerify(token, secret);
+    
+    return {
+      id: payload.id as string,
+      role: payload.role as UserRole
+    };
   } catch (error) {
-    console.error('Failed to parse JWT token:', error);
+    console.error('Failed to verify JWT token:', error);
     return null;
   }
-};
+}
 
 // Check if this is a login or registration page
 const isAuthPage = (path: string): boolean => {
@@ -39,7 +49,7 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
   
-  // Get token from cookies or headers
+  // Get token from cookies (using HttpOnly cookies instead of localStorage)
   const token = request.cookies.get('token')?.value || 
                 request.headers.get('authorization')?.replace('Bearer ', '');
   
@@ -51,31 +61,38 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
   
-  // Parse and verify token
-  const userData = parseToken(token);
-  
-  // If token is invalid or user data is missing, redirect to login
-  if (!userData || !userData.role) {
+  try {
+    // Parse and verify token (await the async function)
+    const userData = await parseToken(token);
+    
+    // If token is invalid or user data is missing, redirect to login
+    if (!userData || !userData.role) {
+      const loginUrl = new URL('/auth/login', request.url);
+      loginUrl.searchParams.set('redirectTo', encodeURIComponent(request.url));
+      loginUrl.searchParams.set('expired', 'true');
+      
+      return NextResponse.redirect(loginUrl);
+    }
+    
+    // Check if user role has access to the requested route
+    if (!routeConfig.roles.includes(userData.role)) {
+      // Redirect to 403 page or specified redirect URL
+      const redirectUrl = new URL(routeConfig.redirectTo || '/unauthorized', request.url);
+      
+      return NextResponse.redirect(redirectUrl);
+    }
+    
+    // User is authenticated and authorized, proceed
+    return NextResponse.next();
+  } catch (error) {
+    // Handle any errors during token verification
+    console.error('Authentication error:', error);
     const loginUrl = new URL('/auth/login', request.url);
     loginUrl.searchParams.set('redirectTo', encodeURIComponent(request.url));
-    // Add expired=true param only if token was present but invalid
-    if (token) {
-      loginUrl.searchParams.set('expired', 'true');
-    }
+    loginUrl.searchParams.set('error', 'true');
     
     return NextResponse.redirect(loginUrl);
   }
-  
-  // Check if user role has access to the requested route
-  if (!routeConfig.roles.includes(userData.role)) {
-    // Redirect to 403 page or specified redirect URL
-    const redirectUrl = new URL(routeConfig.redirectTo || '/unauthorized', request.url);
-    
-    return NextResponse.redirect(redirectUrl);
-  }
-  
-  // User is authenticated and authorized, proceed
-  return NextResponse.next();
 }
 
 // Configure paths that trigger this middleware

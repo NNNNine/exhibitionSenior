@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Card, List, Avatar, Button, Tabs, Empty, Spin, Typography, Badge, Tooltip } from 'antd';
+import { Card, List, Avatar, Button, Tabs, Empty, Spin, Typography, Badge } from 'antd';
 import { useRouter } from 'next/navigation';
 import { 
   BellOutlined, 
@@ -12,18 +12,18 @@ import {
   CommentOutlined,
   ArrowLeftOutlined
 } from '@ant-design/icons';
-import { useAuthContext } from '@/contexts/AuthContext';
+// import { useAuthContext } from '@/contexts/AuthContext';
 import { useNotifications } from '@/contexts/NotificationContext';
 import { getAllNotifications } from '@/lib/api/notification';
 import { Notification } from '@/contexts/NotificationContext';
-import { formatDate, formatRelativeTime } from '@/utils/format';
+import { formatRelativeTime } from '@/utils/format';
 
 const { Title, Text } = Typography;
 const { TabPane } = Tabs;
 
 export default function NotificationsPage() {
   const router = useRouter();
-  const { user } = useAuthContext();
+  // const { user } = useAuthContext();
   const { unreadCount, markAsRead, markAllAsRead } = useNotifications();
   
   const [loading, setLoading] = useState(true);
@@ -109,13 +109,13 @@ export default function NotificationsPage() {
           <Button 
             icon={<ArrowLeftOutlined />} 
             onClick={() => router.back()}
-            className="mr-3"
+            style={{ marginRight: '0.75rem' }}
           />
-          <Title level={2} className="m-0">
+          <Title level={2} style={{ margin: 0 }}>
             Notifications
           </Title>
           {unreadCount > 0 && (
-            <Badge count={unreadCount} className="ml-2" />
+            <Badge count={unreadCount} style={{ marginLeft: '0.5rem' }} />
           )}
         </div>
         
@@ -187,7 +187,7 @@ const NotificationList: React.FC<NotificationListProps> = ({
     return (
       <Empty 
         description={emptyText}
-        className="py-8"
+        style={{ paddingTop: '2rem', paddingBottom: '2rem' }}
       />
     );
   }
@@ -211,6 +211,7 @@ const NotificationList: React.FC<NotificationListProps> = ({
                 src={notification.sender?.profileUrl}
                 size="large"
                 className="flex items-center justify-center"
+                style={{ alignItems: 'center', justifyContent: 'center' }}
               >
                 {!notification.sender?.profileUrl && notification.type}
               </Avatar>
@@ -224,7 +225,7 @@ const NotificationList: React.FC<NotificationListProps> = ({
                   {formatRelativeTime(notification.createdAt)}
                 </Text>
                 {!notification.isRead && (
-                  <Badge status="processing" className="ml-2" />
+                  <Badge status="processing" style={{marginLeft: '0.5rem'}} />
                 )}
               </div>
             }

@@ -7,7 +7,8 @@ import {
   getCurrentUser,
   changePassword,
   forgotPassword,
-  resetPassword
+  resetPassword,
+  logout
 } from '../controllers/auth.controller';
 import { authenticate } from '../middlewares/auth.middleware';
 import { validate } from '../middlewares/validation.middleware';
@@ -36,14 +37,11 @@ router.post(
   login
 );
 
-// Refresh access token
-router.post(
-  '/refresh-token',
-  validate([
-    body('refreshToken').notEmpty().withMessage('Refresh token is required')
-  ]),
-  refreshToken
-);
+// Refresh access token - no longer requires token in body since it's in HttpOnly cookie
+router.post('/refresh-token', refreshToken);
+
+// Logout user
+router.post('/logout', logout);
 
 // Get current user
 router.get('/me', authenticate, getCurrentUser);

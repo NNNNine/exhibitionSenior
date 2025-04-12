@@ -10,33 +10,42 @@ const api = axios.create({
   withCredentials: true, // Important: this enables sending cookies with cross-origin requests
 });
 
-// Track if we're currently refreshing token
+// Enhanced token refresh management
 let isRefreshing = false;
-// Queue of requests that should be retried after token refresh
-let failedQueue: any[] = [];
+let refreshPromise: Promise<string> | null = null;
+let failedQueue: Array<{resolve: (token: string) => void, reject: (error: any) => void}> = [];
 
-// Process failed queue (retry or reject)
+// Process queue of waiting requests
 const processQueue = (error: any = null, token: string | null = null) => {
   failedQueue.forEach(prom => {
     if (error) {
       prom.reject(error);
-    } else {
+    } else if (token) {
       prom.resolve(token);
     }
   });
-  
   failedQueue = [];
 };
+
+// Helper function to set secure cookies
+const setCookie = (name: string, value: string, options: Record<string, string | boolean> = {}) => {
+  const secure = process.env.NODE_ENV === 'production' ? 'Secure;' : '';
+  const cookieString = `${name}=${value}; path=/; SameSite=Strict; HttpOnly; ${secure} ${
+    options.maxAge ? `max-age=${options.maxAge};` : ''
+  }`;
+  document.cookie = cookieString.trim();
+};
+
+// Keep track of redirects to prevent loops
+let hasRedirectedToLogin = false;
+let redirectTimeoutId: NodeJS.Timeout | null = null;
 
 // Add a request interceptor to include auth token
 api.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('token');
-    console.log('API Request - Token from localStorage:', token ? `${token.substr(0, 10)}...` : 'none');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-      console.log('API Request - Authorization header set');
-    }
+    // Token should now come from the cookie automatically thanks to withCredentials: true
+    // We no longer need to manually add the Authorization header as HttpOnly cookies 
+    // will be automatically included in the request
     return config;
   },
   (error) => {
@@ -44,10 +53,7 @@ api.interceptors.request.use(
   }
 );
 
-// Flag to prevent multiple redirects to login
-let hasRedirectedToLogin = false;
-
-// Add a response interceptor to handle token refresh and common errors
+// Add a response interceptor with improved token refresh logic
 api.interceptors.response.use(
   (response) => {
     return response;
@@ -62,102 +68,83 @@ api.interceptors.response.use(
 
     // Check for token expiration (401 unauthorized)
     if (error.response?.status === 401 && !originalRequest._retry) {
-      const isLoginRequest = originalRequest.url?.includes('/auth/login');
-      const isRegisterRequest = originalRequest.url?.includes('/auth/register');
+      originalRequest._retry = true;
       
-      // Skip token refresh for login/register requests
-      if (isLoginRequest || isRegisterRequest) {
+      // Skip token refresh for auth-related requests
+      const isAuthRequest = originalRequest.url?.includes('/auth/');
+      if (isAuthRequest) {
         return Promise.reject(formatError(error));
       }
       
-      // If we're not already refreshing, try to refresh
-      if (!isRefreshing) {
-        isRefreshing = true;
-        originalRequest._retry = true;
-
-        try {
-          const refreshTokenStr = localStorage.getItem('refreshToken');
+      try {
+        // Only start a new refresh process if one isn't already in progress
+        if (!isRefreshing) {
+          isRefreshing = true;
           
-          if (!refreshTokenStr) {
-            console.log('No refresh token available, cannot refresh');
-            // Clean handling of missing refresh token
-            throw new Error('Session expired. Please login again.');
-          }
-
-          // Try to refresh the token
-          const response = await refreshTokenAPI(refreshTokenStr);
-          const { token, refreshToken: newRefreshToken } = response;
-          
-          // Update tokens in localStorage
-          localStorage.setItem('token', token);
-          localStorage.setItem('refreshToken', newRefreshToken);
-          
-          // Also update cookies for SSR/middleware
-          document.cookie = `token=${token}; path=/; max-age=2592000; SameSite=Lax`;
-          document.cookie = `refreshToken=${newRefreshToken}; path=/; max-age=2592000; SameSite=Lax`;
-          
-          console.log('Token Refresh - Tokens updated in localStorage and cookies');
-          
-          // Update Authorization header
-          api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-          
-          // Process queued requests
-          processQueue(null, token);
-          
-          // Retry the original request
-          originalRequest.headers = {
-            ...originalRequest.headers,
-            Authorization: `Bearer ${token}`,
-          };
-          
-          isRefreshing = false;
-          return api(originalRequest);
-        } catch (refreshError) {
-          // Refresh failed, process queue with error
-          processQueue(refreshError, null);
-          
-          // Force logout but don't redirect immediately if we've already redirected
-          localStorage.removeItem('token');
-          localStorage.removeItem('refreshToken');
-          
-          // Clear cookies for SSR/middleware
-          document.cookie = 'token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax';
-          document.cookie = 'refreshToken=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax';
-          
-          console.log('API Error - Refresh failed, cleared tokens from localStorage and cookies');
-          
-          // Only redirect once to prevent redirect loops
-          if (!hasRedirectedToLogin) {
-            hasRedirectedToLogin = true;
-            setTimeout(() => {
-              // Reset the flag after a delay
-              hasRedirectedToLogin = false;
-            }, 3000);
-            
-            // Check if we're not already on the login page
-            if (!window.location.pathname.includes('/auth/login')) {
-              window.location.href = '/auth/login?expired=true';
-            }
-          }
-          
-          isRefreshing = false;
-          return Promise.reject(formatError(refreshError));
-        }
-      } else {
-        // If we're already refreshing, add request to queue
-        return new Promise((resolve, reject) => {
-          failedQueue.push({
-            resolve: (token: string) => {
-              if (originalRequest.headers) {
-                originalRequest.headers.Authorization = `Bearer ${token}`;
+          // Use shared promise for all requests that need refreshing
+          refreshPromise = (async () => {
+            try {
+              // Get refresh token from cookie (will be sent automatically with request)
+              const { token, refreshToken: newRefreshToken } = await refreshTokenAPI();
+              
+              // Update auth cookies
+              setCookie('token', token, { maxAge: '2592000' });
+              setCookie('refreshToken', newRefreshToken, { maxAge: '2592000' });
+              
+              console.log('Token refreshed successfully');
+              
+              // Process queued requests
+              processQueue(null, token);
+              
+              return token;
+            } catch (refreshError) {
+              // Handle token refresh failure
+              console.error('Token refresh failed:', refreshError);
+              
+              // Clear cookies
+              setCookie('token', '', { maxAge: '0' });
+              setCookie('refreshToken', '', { maxAge: '0' });
+              
+              // Process queue with error
+              processQueue(refreshError, null);
+              
+              // Only redirect once to prevent redirect loops
+              if (!hasRedirectedToLogin) {
+                hasRedirectedToLogin = true;
+                
+                // Clear any existing timeout
+                if (redirectTimeoutId) {
+                  clearTimeout(redirectTimeoutId);
+                }
+                
+                // Reset the flag after a delay
+                redirectTimeoutId = setTimeout(() => {
+                  hasRedirectedToLogin = false;
+                  redirectTimeoutId = null;
+                }, 3000);
+                
+                // Check if we're not already on the login page
+                if (!window.location.pathname.includes('/auth/login')) {
+                  window.location.href = '/auth/login?expired=true';
+                }
               }
-              resolve(api(originalRequest));
-            },
-            reject: (err: any) => {
-              reject(err);
+              
+              throw refreshError;
+            } finally {
+              isRefreshing = false;
+              refreshPromise = null;
             }
-          });
-        });
+          })();
+        }
+        
+        // Wait for the refresh process to complete and use the new token
+        const newToken = await refreshPromise;
+        
+        // No need to update headers for cookies
+        return api(originalRequest);
+      } catch (refreshError) {
+        // If refresh fails, reject the original request
+        return Promise.reject(formatError(refreshError));
       }
     }
     
@@ -187,6 +174,43 @@ export const formatError = (error: any): Error => {
   return new Error(message);
 };
 
+// Add CSRF protection
+export const setupCSRFProtection = () => {
+  // Generate a random token
+  const generateRandomToken = () => {
+    return Math.random().toString(36).substring(2, 15) + 
+           Math.random().toString(36).substring(2, 15);
+  };
+  
+  // Get token from cookie or generate a new one
+  const getCsrfToken = () => {
+    const tokenCookie = document.cookie
+      .split('; ')
+      .find(row => row.startsWith('XSRF-TOKEN='));
+    
+    if (tokenCookie) {
+      return tokenCookie.split('=')[1];
+    }
+    
+    // Generate and set a new token
+    const newToken = generateRandomToken();
+    document.cookie = `XSRF-TOKEN=${newToken}; path=/; SameSite=Strict`;
+    return newToken;
+  };
+  
+  // Add CSRF token to outgoing requests
+  api.interceptors.request.use(config => {
+    const csrfToken = getCsrfToken();
+    if (csrfToken) {
+      config.headers['X-XSRF-TOKEN'] = csrfToken;
+    }
+    return config;
+  });
+};
+
+// Initialize CSRF protection
+setupCSRFProtection();
+
 // Export API instance
 export default api;
 
@@ -195,22 +219,4 @@ export * from './auth';
 export * from './artwork';
 export * from './user';
 export * from './notification';
-
-// Export exhibition functions directly to fix the import issue
-export { 
-  getExhibition,
-  createOrUpdateExhibition,
-  getWalls,
-  createWall,
-  updateWall,
-  deleteWall,
-  updateWallLayout,
-  getArtworksForPlacement
-} from './exhibition';
-
-// Also export a renamed version from exhibition.ts
-import { 
-  getExhibition as getExhibitionsFromModule 
-} from './exhibition';
-
-export const getExhibitions = getExhibitionsFromModule;
+export * from './exhibition';

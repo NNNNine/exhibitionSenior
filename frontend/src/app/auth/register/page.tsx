@@ -5,7 +5,7 @@ import { Form, Input, Button, Select, message, Divider } from 'antd';
 import { UserOutlined, LockOutlined, MailOutlined, GoogleOutlined, FacebookOutlined } from '@ant-design/icons';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+// import { useRouter } from 'next/navigation';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { UserRole } from '@/types/user.types';
 
@@ -22,7 +22,7 @@ interface RegisterFormValues {
 export default function Register() {
   const [loading, setLoading] = useState<boolean>(false);
   const { register } = useAuthContext();
-  const router = useRouter();
+  // const router = useRouter();
   const [form] = Form.useForm();
 
   const onFinish = async (values: RegisterFormValues) => {

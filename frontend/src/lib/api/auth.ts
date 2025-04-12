@@ -1,4 +1,3 @@
-// src/lib/api/auth.ts
 import api from './index';
 import { User, UserRole } from '@/types/user.types';
 
@@ -36,11 +35,12 @@ export const login = async (email: string, password: string): Promise<AuthRespon
 };
 
 /**
- * Refresh access token
- * @param refreshToken Current refresh token
+ * Refresh access token using HttpOnly refresh token cookie
+ * This is safer as it doesn't require extracting the token from localStorage
  */
-export const refreshToken = async (refreshToken: string): Promise<{ token: string; refreshToken: string }> => {
-  const response = await api.post('/auth/refresh-token', { refreshToken });
+export const refreshToken = async (): Promise<{ token: string; refreshToken: string }> => {
+  // No need to manually send the refresh token - it's sent automatically via HttpOnly cookie
+  const response = await api.post('/auth/refresh-token');
   return response.data;
 };
 
@@ -48,7 +48,7 @@ export const refreshToken = async (refreshToken: string): Promise<{ token: strin
  * Get current user information
  */
 export const getCurrentUser = async (): Promise<User> => {
-  console.log('API - Getting current user with token from localStorage');
+  console.log('API - Getting current user with token from cookies');
   try {
     const response = await api.get('/auth/me');
     console.log('API - Current user fetch successful');

@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import { AppDataSource } from '../config/database';
 import { User, UserRole } from '../entities/User';
+import { logger } from '../utils/logger';
 
 // Extended request type with user property
 export interface AuthRequest extends Request {
@@ -17,19 +18,27 @@ export const authenticate = async (
   next: NextFunction
 ): Promise<void> => {
   try {
-    // Check for authorization header
-    const authHeader = req.headers.authorization;
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    // First check for token in cookies (more secure)
+    let token = req.cookies.token;
+    
+    // Fallback to Authorization header if token not in cookies
+    if (!token) {
+      const authHeader = req.headers.authorization;
+      if (authHeader && authHeader.startsWith('Bearer ')) {
+        token = authHeader.split(' ')[1];
+      }
+    }
+    
+    if (!token) {
       res.status(401).json({ message: 'Authentication required' });
       return;
     }
 
     // Extract and verify token
-    const token = authHeader.split(' ')[1];
     const decoded = jwt.verify(
       token,
       process.env.JWT_SECRET as string
-    ) as { id: string };
+    ) as { id: string; role: UserRole };
 
     // Find user in database
     const userRepository = AppDataSource.getRepository(User);
@@ -40,14 +49,24 @@ export const authenticate = async (
       return;
     }
 
+    // Verify user's role matches token role for additional security
+    if (user.role !== decoded.role) {
+      logger.warn(`Role mismatch for user ${user.id}: Token role ${decoded.role} != DB role ${user.role}`);
+      res.status(401).json({ message: 'Invalid token' });
+      return;
+    }
+
     // Attach user to request
     req.user = user;
     next();
   } catch (error) {
     if (error instanceof jwt.JsonWebTokenError) {
+      logger.warn('JWT verification failed:', error.message);
       res.status(401).json({ message: 'Invalid token' });
       return;
     }
+    
+    logger.error('Authentication error:', error);
     next(error);
   }
 };
@@ -65,6 +84,7 @@ export const authorize = (roles: UserRole[]) => {
     }
 
     if (!roles.includes(req.user.role)) {
+      logger.warn(`Authorization failed: User ${req.user.id} with role ${req.user.role} attempted to access route restricted to ${roles.join(', ')}`);
       res.status(403).json({ 
         message: 'Access denied',
         error: `This action requires one of these roles: ${roles.join(', ')}`,

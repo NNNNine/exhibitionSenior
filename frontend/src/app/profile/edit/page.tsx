@@ -1,8 +1,8 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Card, Form, Input, Button, message, Upload, Avatar, Select, Alert, Tabs, Switch, Divider } from 'antd';
-import { UserOutlined, UploadOutlined, LockOutlined, SaveOutlined, MailOutlined, BellOutlined, GlobalOutlined } from '@ant-design/icons';
+import { Card, Form, Input, Button, message, Upload, Avatar, Select, Alert, Tabs, Switch, Divider, Modal } from 'antd';
+import { UserOutlined, UploadOutlined, LockOutlined, SaveOutlined, MailOutlined } from '@ant-design/icons';
 import { useRouter } from 'next/navigation';
 import { ProtectedRoute, useAuthContext } from '@/contexts/AuthContext';
 import { updateUser, changePassword } from '@/lib/api/index';
@@ -130,7 +130,7 @@ const ProfileEdit: React.FC = () => {
         
         <Tabs 
           defaultActiveKey="profile"
-          items={[
+          items={([
             {
               key: 'profile',
               label: 'Profile Information',
@@ -633,7 +633,7 @@ const ProfileEdit: React.FC = () => {
                 </Card>
               )
             }
-          ].filter(Boolean)}
+          ] as Tab[]).filter(Boolean)}
         />
       </div>
     </ProtectedRoute>

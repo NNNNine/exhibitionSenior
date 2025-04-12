@@ -1,4 +1,5 @@
 'use client'
+
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { Card, Spin, Button, Result } from 'antd';
@@ -21,6 +22,15 @@ interface AuthContextType {
 // Create context
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+// Cookie helper functions for secure token management
+const setCookie = (name: string, value: string, options: Record<string, string | boolean> = {}) => {
+  const secure = process.env.NODE_ENV === 'production' ? 'Secure;' : '';
+  const cookieString = `${name}=${value}; path=/; SameSite=Strict; HttpOnly; ${secure} ${
+    options.maxAge ? `max-age=${options.maxAge};` : ''
+  }`;
+  document.cookie = cookieString.trim();
+};
+
 // Provider component
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
@@ -28,7 +38,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [initialLoading, setInitialLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
-  // const pathname = usePathname();
   const [loggedOut, setLoggedOut] = useState<boolean>(false);
 
   // Check if user is already logged in on initial load
@@ -42,31 +51,20 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           return;
         }
         
-        // Debug token state
-        console.log('Auth Check - localStorage token:', localStorage.getItem('token'));
-        console.log('Auth Check - cookies:', document.cookie);
+        // We'll now rely primarily on HttpOnly cookies for token management
+        // This allows us to authenticate with the server without exposing tokens to JS
+        console.log('Auth Check - Cookies:', document.cookie);
         
-        const token = localStorage.getItem('token');
-        if (!token) {
-          console.log('Auth Check - No token found in localStorage');
-          setInitialLoading(false);
-          setLoading(false);
-          return;
-        }
-
-        console.log('Auth Check - Attempting to get current user with token');
+        // Try to get the current user - this will succeed if valid cookies exist
         const userData = await authApi.getCurrentUser();
         console.log('Auth Check - User data retrieved:', userData ? 'success' : 'failed');
         setUser(userData);
       } catch (err) {
         console.error('Auth check error:', err);
-        // Clear invalid tokens from localStorage
-        localStorage.removeItem('token');
-        localStorage.removeItem('refreshToken');
         
-        // Clear tokens from cookies
-        document.cookie = 'token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax';
-        document.cookie = 'refreshToken=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax';
+        // Clear any invalid tokens from cookies
+        setCookie('token', '', { maxAge: '0' });
+        setCookie('refreshToken', '', { maxAge: '0' });
         
         console.log('Auth Check - Tokens cleared due to error');
       } finally {
@@ -90,19 +88,13 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     try {
       const { user, token, refreshToken } = await authApi.login(email, password);
       
-      // Store tokens in localStorage for client-side access
-      localStorage.setItem('token', token);
-      localStorage.setItem('refreshToken', refreshToken);
+      // Set tokens in HttpOnly cookies for secure storage
+      // These are not accessible to JavaScript but will be sent with API requests
+      setCookie('token', token, { maxAge: '2592000' }); // 30 days
+      setCookie('refreshToken', refreshToken, { maxAge: '2592000' });
       
-      // Set token in cookies for SSR/middleware authentication
-      // Setting cookies without HttpOnly flag so they can be read from both client and server
-      // Using SameSite=Lax which works better for cross-origin and redirect scenarios
-      document.cookie = `token=${token}; path=/; max-age=2592000; SameSite=Lax`;
-      document.cookie = `refreshToken=${refreshToken}; path=/; max-age=2592000; SameSite=Lax`;
-      
-      console.log('Login - Tokens set in localStorage and cookies');
-      console.log('Login - localStorage token:', token ? `${token.substr(0, 10)}...` : 'none');
-      console.log('Login - cookies after setting:', document.cookie);
+      console.log('Login - Tokens set in cookies');
+      console.log('Login - cookies after setting:', document.cookie.includes('token=') ? 'token present' : 'token not present');
       
       setUser(user);
       
@@ -127,19 +119,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     try {
       const { user, token, refreshToken } = await authApi.register(username, email, password, role);
       
-      // Store tokens in localStorage for client-side access
-      localStorage.setItem('token', token);
-      localStorage.setItem('refreshToken', refreshToken);
+      // Set tokens in HttpOnly cookies
+      setCookie('token', token, { maxAge: '2592000' });
+      setCookie('refreshToken', refreshToken, { maxAge: '2592000' });
       
-      // Set token in cookies for SSR/middleware authentication
-      // Setting cookies without HttpOnly flag so they can be read from both client and server
-      // Using SameSite=Lax which works better for cross-origin and redirect scenarios
-      document.cookie = `token=${token}; path=/; max-age=2592000; SameSite=Lax`;
-      document.cookie = `refreshToken=${refreshToken}; path=/; max-age=2592000; SameSite=Lax`;
-      
-      console.log('Login - Tokens set in localStorage and cookies');
-      console.log('Login - localStorage token:', token ? `${token.substr(0, 10)}...` : 'none');
-      console.log('Login - cookies after setting:', document.cookie);
+      console.log('Register - Tokens set in cookies');
       
       setUser(user);
       
@@ -158,21 +142,17 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   // Handle logout
   const logout = () => {
-    // Clear tokens from localStorage
-    localStorage.removeItem('token');
-    localStorage.removeItem('refreshToken');
-    
     // Clear tokens from cookies
-    document.cookie = 'token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax';
-    document.cookie = 'refreshToken=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax';
+    setCookie('token', '', { maxAge: '0' });
+    setCookie('refreshToken', '', { maxAge: '0' });
     
-    console.log('Logout - Tokens cleared from localStorage and cookies');
+    console.log('Logout - Tokens cleared from cookies');
     
     // Reset user state and set loggedOut flag
     setUser(null);
     setLoggedOut(true);
     
-    // Redirect to login page without expired parameter
+    // Redirect to login page
     router.push('/auth/login');
   };
 

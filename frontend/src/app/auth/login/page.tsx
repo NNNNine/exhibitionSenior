@@ -45,13 +45,13 @@ export default function LoginPage() {
       if (user) {
         switch (user.role) {
           case UserRole.ARTIST:
-            router.push('/artist/dashboard');
+            router.push('/dashboard/artist');
             break;
           case UserRole.CURATOR:
-            router.push('/curator/dashboard');
+            router.push('/dashboard/curator');
             break;
           case UserRole.ADMIN:
-            router.push('/admin/dashboard');
+            router.push('/dashboard/admin');
             break;
           default:
             router.push('/');

@@ -6,10 +6,12 @@ import path from 'path';
 import rateLimit from 'express-rate-limit';
 import { Server } from 'socket.io';
 import http from 'http';
+import cookieParser from 'cookie-parser';
 import 'reflect-metadata';
 
 import routes from './routes';
 import { errorHandler } from './middlewares/error.middleware';
+import { csrfMiddleware } from './middlewares/csrf.middleware';
 import { logger } from './utils/logger';
 import { UserRole } from './entities/User';
 
@@ -43,16 +45,24 @@ const limiter = rateLimit({
   legacyHeaders: false
 });
 
+// Add cookie parser middleware
+app.use(cookieParser());
+
 // Apply middleware
 app.use(cors({
   origin: process.env.FRONTEND_URL || 'http://localhost:3000',
-  credentials: true
+  credentials: true // Important for cookies with CORS
 }));
+
+// Add Helmet for security headers
 app.use(helmet());
 app.use(compression());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use('/api', limiter);
+
+// Apply CSRF protection middleware
+app.use(csrfMiddleware);
 
 // Static files
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
