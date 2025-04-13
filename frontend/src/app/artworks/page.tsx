@@ -254,7 +254,8 @@ const ArtworksPage: React.FC = () => {
                       options={tags.map(tag => ({ label: tag, value: tag }))}
                       value={selectedTags}
                       onChange={handleTagChange}
-                      className="flex flex-col space-y-2"
+                      // className="flex flex-col space-y-2"
+                      style={{ display: 'flex', flexDirection: 'column', marginTop: '8px' }} 
                     />
                   )
                 },
@@ -265,7 +266,7 @@ const ArtworksPage: React.FC = () => {
                     <Radio.Group 
                       value={sortBy} 
                       onChange={(e) => handleSortChange(e.target.value)}
-                      className="flex flex-col space-y-2"
+                      style={{ display: 'flex', flexDirection: 'column', marginTop: '8px' }} 
                     >
                       <Radio value="newest">Newest First</Radio>
                       <Radio value="oldest">Oldest First</Radio>
@@ -328,6 +329,7 @@ const ArtworksPage: React.FC = () => {
               type="error"
               showIcon
               className="mb-6"
+              style={{ marginBottom: '1.5rem' }}
             />
           )}
           

@@ -75,7 +75,7 @@ const ArtworkGrid: React.FC<ArtworkGridProps> = ({
               <Image
                 alt={artwork.title}
                 src={formatImageUrl(artwork.thumbnailUrl || artwork.fileUrl)}
-                className="h-full w-full object-cover"
+                style={{ objectFit: 'cover' }}
                 width={300}
                 height={300}
               />

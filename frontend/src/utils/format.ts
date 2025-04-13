@@ -121,5 +121,5 @@ export const formatImageUrl = (url: string | undefined | null): string => {
   }
   
   // Otherwise, prepend the backend URL
-  return `${process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'http://localhost:3000'}${url}`;
+  return `${process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'http://localhost:3001'}${url}`;
 };

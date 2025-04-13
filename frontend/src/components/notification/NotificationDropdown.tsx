@@ -89,44 +89,51 @@ const NotificationDropdown: React.FC = () => {
               <List
                 dataSource={notifications}
                 renderItem={(notification) => (
-                  <List.Item
+                    <List.Item
                     key={notification.id}
                     onClick={() => handleNotificationClick(notification)}
-                    className={`cursor-pointer transition-colors duration-200 hover:bg-gray-50 ${
-                      !notification.isRead ? 'bg-blue-50' : ''
-                    }`}
-                    style={{ padding: '12px 16px', cursor: 'pointer',  }}
-                  >
+                    style={{
+                      padding: '12px 16px',
+                      cursor: 'pointer',
+                      backgroundColor: !notification.isRead ? '#e6f7ff' : 'transparent',
+                      transition: 'background-color 0.2s',
+                    }}
+                    onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#f5f5f5')}
+                    onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = !notification.isRead ? '#e6f7ff' : 'transparent')}
+                    >
                     <List.Item.Meta
                       avatar={
-                        <Avatar
-                          icon={notification.sender?.profileUrl ? null : <UserOutlined />}
-                          src={notification.sender?.profileUrl}
-                          className="flex"
-                          style={{ justifyContent: 'center', alignItems: 'center' }}
-                        >
-                          {getNotificationIcon(notification.type)}
-                        </Avatar>
+                      <Avatar
+                        icon={notification.sender?.profileUrl ? null : <UserOutlined />}
+                        src={notification.sender?.profileUrl}
+                        style={{
+                        display: 'flex',
+                        justifyContent: 'center',
+                        alignItems: 'center',
+                        }}
+                      >
+                        {getNotificationIcon(notification.type)}
+                      </Avatar>
                       }
                       title={
-                        <div className="font-medium">
-                          {notification.message}
-                        </div>
+                      <div style={{ fontWeight: 500 }}>
+                        {notification.message}
+                      </div>
                       }
                       description={
-                        <Text type="secondary" style={{ fontSize: '0.75rem', lineHeight: 1.33 }} className="text-xs">
-                          {formatRelativeTime(notification.createdAt)}
-                        </Text>
+                      <Text type="secondary" style={{ fontSize: '0.75rem', lineHeight: 1.33 }}>
+                        {formatRelativeTime(notification.createdAt)}
+                      </Text>
                       }
                     />
-                  </List.Item>
+                    </List.Item>
                 )}
               />
             ) : (
               <Empty
                 image={Empty.PRESENTED_IMAGE_SIMPLE}
                 description="No notifications"
-                className="my-8"
+                style={{ marginTop: '2rem', marginBottom: '2rem' }}
               />
             )}
           </div>
@@ -160,7 +167,8 @@ const NotificationDropdown: React.FC = () => {
             <Button 
               type="text" 
               icon={<BellOutlined style={{ fontSize: '20px' }} />} 
-              className="flex items-center justify-center"
+              className="flex"
+              style={{ alignItems: 'center', justifyContent: 'center' }}
               size="large"
             />
           </Tooltip>
