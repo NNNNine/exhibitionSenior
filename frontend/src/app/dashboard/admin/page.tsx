@@ -682,6 +682,6 @@ const AdminDashboard: React.FC = () => {
 };
 
 export default withProtectedRoute(AdminDashboard, {
-  requiredRoles: [UserRole.ADMIN],
+  requiredRoles: [UserRole.CURATOR],
   redirectTo: '/unauthorized',
 });

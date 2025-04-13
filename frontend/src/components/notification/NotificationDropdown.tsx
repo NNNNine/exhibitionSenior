@@ -107,9 +107,9 @@ const NotificationDropdown: React.FC = () => {
                         icon={notification.sender?.profileUrl ? null : <UserOutlined />}
                         src={notification.sender?.profileUrl}
                         style={{
-                        display: 'flex',
-                        justifyContent: 'center',
-                        alignItems: 'center',
+                          display: 'flex',
+                          justifyContent: 'center',
+                          alignItems: 'center',
                         }}
                       >
                         {getNotificationIcon(notification.type)}
@@ -166,9 +166,8 @@ const NotificationDropdown: React.FC = () => {
           <Tooltip title="Notifications">
             <Button 
               type="text" 
-              icon={<BellOutlined style={{ fontSize: '20px' }} />} 
-              className="flex"
-              style={{ alignItems: 'center', justifyContent: 'center' }}
+              icon={<BellOutlined style={{ fontSize: '20px', color: 'white' }} />} 
+              style={{ alignItems: 'center', justifyContent: 'center', display: 'flex', color: 'white' }}
               size="large"
             />
           </Tooltip>

@@ -2,17 +2,17 @@
 
 import React, { useState, useEffect } from 'react';
 import { Card, Tabs, Button, Statistic, Table, Tag, message, Spin, Modal, Tooltip, Badge, Alert, Drawer, List, Avatar, Empty, Space, Image } from 'antd';
-import { PlusOutlined, CheckCircleOutlined, CloseCircleOutlined, EyeOutlined, BellOutlined, PictureOutlined } from '@ant-design/icons';
+import { PlusOutlined, CheckCircleOutlined, CloseCircleOutlined, EyeOutlined, BellOutlined, PictureOutlined, UserOutlined, SettingOutlined, LayoutOutlined } from '@ant-design/icons';
 import { useRouter } from 'next/navigation';
 import { withProtectedRoute } from '@/contexts/AuthContext';
 import { UserRole } from '@/types/user.types';
-import { getExhibition, getArtworks } from '@/lib/api/index';
+import { getExhibition, getArtworks, approveArtwork, rejectArtwork } from '@/lib/api/index';
 import { useNotifications } from '@/contexts/NotificationContext';
-// import ExhibitionGrid from '@/components/exhibition/ExhibitionGrid';
 import { Exhibition } from '@/types/exhibition.types';
-import { Artwork } from '@/types/artwork.types';
+import { Artwork, ArtworkStatus } from '@/types/artwork.types';
 import { formatDate, formatImageUrl } from '@/utils/format';
 import { getSocketClient, authenticateSocket } from '@/lib/socketClient';
+import CuratorNavLinks from '@/components/curator/CuratorNavLink';
 
 const CuratorDashboard: React.FC = () => {
   const router = useRouter();
@@ -24,6 +24,8 @@ const CuratorDashboard: React.FC = () => {
   const [stats, setStats] = useState({
     pendingApproval: 0,
     totalArtworks: 0,
+    totalUsers: 0,
+    activeExhibitions: 0
   });
   
   // State for notification drawer
@@ -38,15 +40,15 @@ const CuratorDashboard: React.FC = () => {
         setLoading(true);
         
         // Get all exhibitions curated by current user
-        const fetchedExhibition = await getExhibition();
+        const {exhibition: fetchedExhibition} = await getExhibition();
 
-        // Get all artworks pending approval (mock data - would be a status field)
+        // Get all artworks pending approval
         const { artworks: fetchedArtworks } = await getArtworks({
-          limit: 100,
+          status: ArtworkStatus.PENDING,
+          limit: 5,
         });
         
-        // For demo purposes, let's assume a portion of artworks are pending approval
-        const pendingArts = fetchedArtworks.slice(0, Math.min(5, fetchedArtworks.length));
+        const pendingArts = fetchedArtworks;
 
         setExhibition(fetchedExhibition);
         setPendingArtworks(pendingArts);
@@ -54,7 +56,9 @@ const CuratorDashboard: React.FC = () => {
         // Calculate statistics
         setStats({
           pendingApproval: pendingArts.length,
-          totalArtworks: fetchedArtworks.length,
+          totalArtworks: 100, // This would come from an actual API call
+          totalUsers: 25,     // This would come from an actual API call
+          activeExhibitions: fetchedExhibition?.isActive ? 1 : 0,
         });
       } catch (error) {
         console.error('Error fetching curator data:', error);
@@ -113,38 +117,57 @@ const CuratorDashboard: React.FC = () => {
     notification => notification.type === 'artwork_upload'
   );
 
-  // Mock function to handle artwork approval
-  const handleApproveArtwork = (artwork: Artwork) => {
-    Modal.confirm({
-      title: 'Approve Artwork',
-      content: `Are you sure you want to approve "${artwork.title}"?`,
-      onOk: () => {
-        setPendingArtworks(prev => prev.filter(a => a.id !== artwork.id));
-        setStats(prev => ({
-          ...prev, 
-          pendingApproval: prev.pendingApproval - 1
-        }));
-        message.success(`Artwork "${artwork.title}" has been approved`);
-      }
-    });
+  // Handle notification click
+  const handleNotificationClick = async (notification: any) => {
+    // Mark as read
+    if (!notification.isRead) {
+      await markAsRead(notification.id);
+    }
+    
+    // Navigate to artwork
+    if (notification.entityId) {
+      router.push(`/artworks/${notification.entityId}`);
+    }
   };
 
-  // Mock function to handle artwork rejection
-  const handleRejectArtwork = (artwork: Artwork) => {
-    Modal.confirm({
-      title: 'Reject Artwork',
-      content: `Are you sure you want to reject "${artwork.title}"?`,
-      okText: 'Reject',
-      okButtonProps: { danger: true },
-      onOk: () => {
-        setPendingArtworks(prev => prev.filter(a => a.id !== artwork.id));
-        setStats(prev => ({
-          ...prev, 
-          pendingApproval: prev.pendingApproval - 1
-        }));
-        message.success(`Artwork "${artwork.title}" has been rejected`);
-      }
-    });
+  // Handle artwork approval
+  const handleApproveArtwork = async (artworkId: string) => {
+    try {
+      await approveArtwork(artworkId);
+      message.success('Artwork approved successfully');
+      
+      // Update local state by removing the approved artwork from pending list
+      setPendingArtworks(prev => prev.filter(artwork => artwork.id !== artworkId));
+      
+      // Update stats
+      setStats(prev => ({
+        ...prev,
+        pendingApproval: Math.max(0, prev.pendingApproval - 1)
+      }));
+    } catch (error) {
+      console.error('Error approving artwork:', error);
+      message.error('Failed to approve artwork');
+    }
+  };
+
+  // Handle artwork rejection
+  const handleRejectArtwork = async (artworkId: string) => {
+    try {
+      await rejectArtwork(artworkId);
+      message.success('Artwork rejected successfully');
+      
+      // Update local state by removing the rejected artwork from pending list
+      setPendingArtworks(prev => prev.filter(artwork => artwork.id !== artworkId));
+      
+      // Update stats
+      setStats(prev => ({
+        ...prev,
+        pendingApproval: Math.max(0, prev.pendingApproval - 1)
+      }));
+    } catch (error) {
+      console.error('Error rejecting artwork:', error);
+      message.error('Failed to reject artwork');
+    }
   };
 
   // Define columns for the pending approvals table
@@ -199,7 +222,7 @@ const CuratorDashboard: React.FC = () => {
           <Tooltip title="Approve">
             <Button 
               icon={<CheckCircleOutlined />} 
-              onClick={() => handleApproveArtwork(record)} 
+              onClick={() => handleApproveArtwork(record.id)}
               type="primary" 
               size="small" 
             />
@@ -207,7 +230,7 @@ const CuratorDashboard: React.FC = () => {
           <Tooltip title="Reject">
             <Button 
               icon={<CloseCircleOutlined />} 
-              onClick={() => handleRejectArtwork(record)} 
+              onClick={() => handleRejectArtwork(record.id)}
               danger 
               size="small" 
             />
@@ -217,22 +240,12 @@ const CuratorDashboard: React.FC = () => {
     },
   ];
 
-  // Handle notification click
-  const handleNotificationClick = async (notification: any) => {
-    // Mark as read
-    if (!notification.isRead) {
-      await markAsRead(notification.id);
-    }
-    
-    // Navigate to artwork
-    if (notification.entityId) {
-      router.push(`/artworks/${notification.entityId}`);
-    }
-  };
-
   return (
     <div className="p-6 max-w-7xl mx-auto">
       <h1 className="text-2xl font-bold mb-6">Curator Dashboard</h1>
+      
+      {/* Navigation Menu */}
+      <CuratorNavLinks />
       
       {/* Real-time notification banner */}
       {unreadCount > 0 && (
@@ -240,7 +253,7 @@ const CuratorDashboard: React.FC = () => {
           message={
             <div className="flex items-center justify-between">
               <div>
-                <Badge count={unreadCount} className="mr-2" />
+                <Badge count={unreadCount} style={{ marginRight: '0.5rem' }} />
                 You have {unreadCount} new notification{unreadCount > 1 ? 's' : ''}
               </div>
               <Button 
@@ -262,23 +275,71 @@ const CuratorDashboard: React.FC = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         <Card>
           <Statistic 
-            title="Pending Approval" 
+            title={<div className="flex items-center">
+              <span>Pending Approval</span>
+              {unreadCount > 0 && <Badge status="processing" style={{ marginLeft: '0.5rem' }} />}
+            </div>}
             value={stats.pendingApproval} 
-            prefix={<PlusOutlined />} 
+            prefix={<PictureOutlined />} 
             valueStyle={{ color: unreadCount > 0 ? '#ff4d4f' : undefined }}
           />
-          {unreadCount > 0 && (
-            <Badge count={unreadCount} offset={[-10, 0]}>
-              <div />
-            </Badge>
-          )}
+          <div className="mt-4">
+            <Button 
+              type="primary" 
+              size="small"
+              onClick={() => router.push('/curator/manage/artwork?status=pending')}
+            >
+              Manage Approvals
+            </Button>
+          </div>
         </Card>
         <Card>
           <Statistic 
             title="Total Artworks" 
             value={stats.totalArtworks} 
-            prefix={<PlusOutlined />} 
+            prefix={<PictureOutlined />} 
           />
+          <div className="mt-4">
+            <Button 
+              type="primary" 
+              size="small"
+              onClick={() => router.push('/curator/manage/artwork')}
+            >
+              Manage Artworks
+            </Button>
+          </div>
+        </Card>
+        <Card>
+          <Statistic 
+            title="Total Users" 
+            value={stats.totalUsers} 
+            prefix={<UserOutlined />} 
+          />
+          <div className="mt-4">
+            <Button 
+              type="primary" 
+              size="small"
+              onClick={() => router.push('/curator/manage/user')}
+            >
+              Manage Users
+            </Button>
+          </div>
+        </Card>
+        <Card>
+          <Statistic 
+            title="Exhibition Status" 
+            value={exhibition?.isActive ? 'Active' : 'Inactive'} 
+            prefix={<SettingOutlined />} 
+          />
+          <div className="mt-4">
+            <Button 
+              type="primary" 
+              size="small"
+              onClick={() => router.push('/curator/layout')}
+            >
+              Layout Editor
+            </Button>
+          </div>
         </Card>
       </div>
       
@@ -289,9 +350,9 @@ const CuratorDashboard: React.FC = () => {
           <Button 
             type="primary" 
             icon={<PlusOutlined />} 
-            onClick={() => router.push('/exhibitions/edit')}
+            onClick={() => router.push('/exhibitions/create')}
           >
-            Edit Exhibition
+            Create Exhibition
           </Button>
           <Button 
             onClick={() => router.push('/profile/edit')}
@@ -334,17 +395,107 @@ const CuratorDashboard: React.FC = () => {
                     <div className="flex justify-center py-10">
                       <Spin size="large" />
                     </div>
-                  ) : (
+                  ) : pendingArtworks.length > 0 ? (
                     <Table 
                       dataSource={pendingArtworks}
                       columns={pendingColumns}
                       rowKey="id"
                       pagination={false}
                     />
+                  ) : (
+                    <Empty 
+                      description="No artworks pending approval" 
+                      image={Empty.PRESENTED_IMAGE_SIMPLE}
+                    />
+                  )}
+                  
+                  {pendingArtworks.length > 0 && (
+                    <div className="mt-4 text-right">
+                      <Button
+                        type="primary"
+                        onClick={() => router.push('/curator/manage/artwork?status=pending')}
+                      >
+                        View All Pending Artworks
+                      </Button>
+                    </div>
                   )}
                 </div>
               )
             },
+            {
+              key: 'management',
+              label: 'Exhibition Management',
+              children: (
+                <div>
+                  {loading ? (
+                    <div className="flex justify-center py-10">
+                      <Spin size="large" />
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <Card title="Current Exhibition" bordered={false}>
+                        {exhibition ? (
+                          <div>
+                            <h3 className="text-lg font-medium mb-2">{exhibition.title}</h3>
+                            <p className="text-gray-500 mb-4">{exhibition.description.substring(0, 150)}...</p>
+                            <p>
+                              <strong>Status:</strong>{' '}
+                              <Tag color={exhibition.isActive ? 'green' : 'orange'}>
+                                {exhibition.isActive ? 'Active' : 'Inactive'}
+                              </Tag>
+                            </p>
+                            <p>
+                              <strong>Period:</strong>{' '}
+                              {formatDate(exhibition.startDate)} to {formatDate(exhibition.endDate)}
+                            </p>
+                            <div className="mt-4">
+                              <Button
+                                type="primary"
+                                onClick={() => router.push(`/exhibitions/${exhibition.id}`)}
+                              >
+                                View Exhibition
+                              </Button>
+                              <Button
+                                style={{ marginLeft: '0.5rem' }}
+                                onClick={() => router.push(`/exhibitions/${exhibition.id}/edit`)}
+                              >
+                                Edit Exhibition
+                              </Button>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="text-center py-6">
+                            <p className="text-gray-500 mb-4">No active exhibition</p>
+                            <Button 
+                              type="primary"
+                              onClick={() => router.push('/exhibitions/create')}
+                            >
+                              Create Exhibition
+                            </Button>
+                          </div>
+                        )}
+                      </Card>
+                      
+                      <Card title="Layout Editor" bordered={false}>
+                        <p className="text-gray-500 mb-4">
+                          Arrange artworks in the 3D exhibition space with the layout editor.
+                        </p>
+                        <div className="text-center">
+                          <Button 
+                            type="primary" 
+                            size="large"
+                            onClick={() => router.push('/curator/layout')}
+                            icon={<LayoutOutlined />}
+                          >
+                            Open Layout Editor
+                          </Button>
+                        </div>
+                      </Card>
+                    </div>
+                  )}
+                </div>
+              )
+            }
           ]}
         />
       </Card>
@@ -425,6 +576,6 @@ const CuratorDashboard: React.FC = () => {
 };
 
 export default withProtectedRoute(CuratorDashboard, {
-  requiredRoles: [UserRole.CURATOR, UserRole.ADMIN],
+  requiredRoles: [UserRole.CURATOR],
   redirectTo: '/unauthorized',
 });

@@ -32,13 +32,14 @@ import {
   PlusOutlined
 } from '@ant-design/icons';
 import { useAuthContext } from '@/contexts/AuthContext';
-import { getUserByUsername, getUserArtworks, getExhibitions } from '@/lib/api/index';
+import { getUserByUsername, getUserArtworks, getExhibition } from '@/lib/api/index';
 import { User, UserRole } from '@/types/user.types';
 import { Artwork } from '@/types/artwork.types';
 import { Exhibition } from '@/types/exhibition.types';
 import ArtworkGrid from '@/components/artwork/ArtworkGrid';
-import ExhibitionGrid from '@/components/exhibition/ExhibitionGrid';
+// import ExhibitionGrid from '@/components/exhibition/ExhibitionGrid';
 import { formatDate, formatImageUrl } from '@/utils/format';
+// import { set } from 'date-fns';
 
 const { Title, Paragraph, Text } = Typography;
 
@@ -49,7 +50,7 @@ const UserProfilePage: React.FC = () => {
   
   const [user, setUser] = useState<User | null>(null);
   const [artworks, setArtworks] = useState<Artwork[]>([]);
-  const [exhibitions, setExhibitions] = useState<Exhibition[]>([]);
+  const [exhibitions, setExhibitions] = useState<Exhibition | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<string>('1');
@@ -72,8 +73,8 @@ const UserProfilePage: React.FC = () => {
             .then(({ artworks: fetchedArtworks }) => setArtworks(fetchedArtworks)),
           
           // If user is a curator, get their exhibitions
-          userData.role === UserRole.CURATOR && getExhibitions({ curator: userData.id })
-            .then(({ exhibitions: fetchedExhibitions }) => setExhibitions(fetchedExhibitions))
+          userData.role === UserRole.CURATOR && getExhibition()
+            .then(({ exhibition: fetchedExhibition }) => setExhibitions(fetchedExhibition))
         ]);
 
       } catch (err: any) {
@@ -106,8 +107,6 @@ const UserProfilePage: React.FC = () => {
 
   const getRoleBadgeColor = (role: UserRole) => {
     switch (role) {
-      case UserRole.ADMIN:
-        return 'red';
       case UserRole.CURATOR:
         return 'green';
       case UserRole.ARTIST:
@@ -176,7 +175,7 @@ const UserProfilePage: React.FC = () => {
             }
           >
             <Paragraph className="text-gray-500 mb-6">
-              The user profile you're looking for doesn't exist or may have been removed.
+              The user profile you&apos;re looking for doesn&apos;t exist or may have been removed.
             </Paragraph>
             <Button 
               type="primary"
@@ -221,12 +220,12 @@ const UserProfilePage: React.FC = () => {
         return (
           <Paragraph>
             {user.username} enjoys exploring art exhibitions and discovering new artists 
-            on our platform. As an art enthusiast, they're constantly looking for inspiration
+            on our platform. As an art enthusiast, they&apos;re constantly looking for inspiration
             and connecting with creative works that resonate with them.
           </Paragraph>
         );
       default:
-        return <Paragraph>Welcome to {user.username}'s profile!</Paragraph>;
+        return <Paragraph>Welcome to {user.username}&apos;s profile!</Paragraph>;
     }
   };
 
@@ -317,36 +316,10 @@ const UserProfilePage: React.FC = () => {
               </div>
             </div>
             
-            {exhibitions.length > 0 ? (
-              <ExhibitionGrid 
-                exhibitions={exhibitions} 
-                columns={2}
-                showCurator={false}
-              />
-            ) : (
-              <Empty
-                image={<EnvironmentOutlined style={{ fontSize: 64, color: '#d9d9d9' }} />}
-                description={
-                  isCurrentUser 
-                    ? "You haven't created any exhibitions yet" 
-                    : "This curator hasn't created any exhibitions yet"
-                }
-              >
-                {isCurrentUser && (
-                  <Button 
-                    type="primary"
-                    onClick={() => router.push('/exhibitions/create')} 
-                  >
-                    Create Your First Exhibition
-                  </Button>
-                )}
-              </Empty>
-            )}
           </div>
         )
       });
     }
-
     return tabs;
   };
 
@@ -445,19 +418,8 @@ const UserProfilePage: React.FC = () => {
               {user.role === UserRole.CURATOR && (
                 <>
                   <Statistic 
-                    title="Exhibitions" 
-                    value={exhibitions.length} 
-                    prefix={<EnvironmentOutlined className="text-green-500" />} 
-                  />
-                  <Statistic 
-                    title="Active" 
-                    value={exhibitions.filter(e => e.isActive).length} 
-                    prefix={<TrophyOutlined className="text-gold-500" />} 
-                  />
-                  <Statistic 
                     title="Artworks" 
-                    value={exhibitions.reduce((acc, exhibition) => 
-                      acc + (exhibition.items?.length || 0), 0)} 
+                    value={exhibitions?.items?.length || 0} 
                     prefix={<PictureOutlined className="text-blue-500" />} 
                   />
                   <Statistic 

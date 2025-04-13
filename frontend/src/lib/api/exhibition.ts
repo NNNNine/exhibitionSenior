@@ -12,7 +12,7 @@ import { Artwork } from '@/types/artwork.types';
 /**
  * Get the active exhibition with all walls and artwork placements
  */
-export const getExhibition = async (): Promise<Exhibition> => {
+export const getExhibition = async (): Promise<{exhibition: Exhibition}> => {
   const response = await api.get('/exhibition');
   return response.data;
 };

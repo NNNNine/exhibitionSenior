@@ -633,7 +633,7 @@ const ProfileEdit: React.FC = () => {
                 </Card>
               )
             }
-          ] as Tab[]).filter(Boolean)}
+          ] as { key: string; label: string; children: React.ReactNode }[]).filter(Boolean)}
         />
       </div>
     </ProtectedRoute>

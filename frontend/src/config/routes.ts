@@ -15,48 +15,53 @@ export const protectedRoutes: Record<string, RouteConfig> = {
   // Dashboard routes
   '/dashboard/artist': {
     path: '/dashboard/artist',
-    roles: [UserRole.ARTIST, UserRole.ADMIN],
+    roles: [UserRole.ARTIST, UserRole.CURATOR],
     redirectTo: '/'
   },
   '/dashboard/curator': {
     path: '/dashboard/curator',
-    roles: [UserRole.CURATOR, UserRole.ADMIN],
-    redirectTo: '/'
-  },
-  '/dashboard/admin': {
-    path: '/dashboard/admin',
-    roles: [UserRole.ADMIN],
+    roles: [UserRole.CURATOR],
     redirectTo: '/'
   },
   
   // Artist-specific routes
   '/artworks/upload': {
     path: '/artworks/upload',
-    roles: [UserRole.ARTIST, UserRole.ADMIN],
+    roles: [UserRole.ARTIST, UserRole.CURATOR],
     redirectTo: '/artworks'
   },
   '/artworks/edit': {
     path: '/artworks/edit',
-    roles: [UserRole.ARTIST, UserRole.ADMIN],
+    roles: [UserRole.ARTIST, UserRole.CURATOR],
     redirectTo: '/artworks'
   },
   
   // Curator-specific routes
   '/exhibitions/create': {
     path: '/exhibitions/create',
-    roles: [UserRole.CURATOR, UserRole.ADMIN],
+    roles: [UserRole.CURATOR],
     redirectTo: '/exhibitions'
   },
   '/exhibitions/edit': {
     path: '/exhibitions/edit',
-    roles: [UserRole.CURATOR, UserRole.ADMIN],
+    roles: [UserRole.CURATOR],
     redirectTo: '/exhibitions'
+  },
+  '/curator/manage/user': {
+    path: '/curator/manage/user',
+    roles: [UserRole.CURATOR],
+    redirectTo: '/unauthorized'
+  },
+  '/curator/manage/artwork': {
+    path: '/curator/manage/artwork',
+    roles: [UserRole.CURATOR],
+    redirectTo: '/unauthorized'
   },
   
   // Profile routes
   '/profile/edit': {
     path: '/profile/edit',
-    roles: [UserRole.VISITOR, UserRole.ARTIST, UserRole.CURATOR, UserRole.ADMIN],
+    roles: [UserRole.VISITOR, UserRole.ARTIST, UserRole.CURATOR],
     redirectTo: '/auth/login'
   }
 };

@@ -173,9 +173,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       case UserRole.CURATOR:
         router.push('/dashboard/curator');
         break;
-      case UserRole.ADMIN:
-        router.push('/dashboard/admin');
-        break;
       default:
         router.push('/');
         break;
@@ -262,8 +259,6 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
         return '/dashboard/artist';
       case UserRole.CURATOR:
         return '/dashboard/curator';
-      case UserRole.ADMIN:
-        return '/dashboard/admin';
       default:
         return '/';
     }

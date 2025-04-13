@@ -140,9 +140,6 @@ const useAuth = (): UseAuthReturn => {
       case UserRole.CURATOR:
         router.push('/dashboard/curator');
         break;
-      case UserRole.ADMIN:
-        router.push('/dashboard/admin');
-        break;
       default:
         router.push('/');
         break;

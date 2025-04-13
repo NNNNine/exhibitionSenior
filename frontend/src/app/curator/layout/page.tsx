@@ -341,17 +341,16 @@ const CuratorLayoutEditor: React.FC = () => {
 
   return (
     <DndProvider options={dndOptions}>
-      <Layout className="min-h-screen">
+      <Layout style={{ minHeight: '100vh' }}>
         <Layout>
           {/* Stockpile Sidebar */}
           <Sider 
-            width={320} 
-            className="bg-white overflow-auto" 
-            style={{ height: '100vh', position: 'fixed', left: 0, top: 0, bottom: 0 }}
+            width={320}
+            style={{ height: '100vh', position: 'sticky', left: 0, top: 0, bottom: 0, backgroundColor: 'white', overflow: 'auto' }}
           >
             <div className="p-4 border-b border-gray-200">
               <div className="flex justify-between items-center mb-4">
-                <Title level={4} className="my-0">Art Stockpile</Title>
+                <Title level={4} style={{ marginTop: '0rem', marginBottom: '0rem' }}>Art Stockpile</Title>
                 <Badge count={availableArtworks.length} overflowCount={999} />
               </div>
               
@@ -365,7 +364,7 @@ const CuratorLayoutEditor: React.FC = () => {
                 />
               </div>
               
-              <Paragraph className="text-gray-500">
+              <Paragraph style={{ color: '#6b7280' }}>
                 {availableArtworks.length} approved {availableArtworks.length === 1 ? 'artwork' : 'artworks'} available for placement
               </Paragraph>
             </div>
@@ -379,7 +378,7 @@ const CuratorLayoutEditor: React.FC = () => {
                       message="Drag to empty slots"
                       type="info"
                       showIcon
-                      className="mb-4 sticky top-0 z-10"
+                      style={{ marginBottom: '1rem', position: 'sticky', top: 0, zIndex: 10 }}
                     />
                   )}
                   
@@ -406,7 +405,7 @@ const CuratorLayoutEditor: React.FC = () => {
           </Sider>
           
           {/* Main Content */}
-          <Content className="p-6 ml-80">
+          <Content style={{ padding: '1.5rem', marginLeft: '1.5rem' }}>
             <div className="mb-6 flex justify-between items-center">
               <Title level={2}>Exhibition Layout Editor</Title>
               
@@ -432,7 +431,7 @@ const CuratorLayoutEditor: React.FC = () => {
                 description={error} 
                 type="error" 
                 showIcon 
-                className="mb-4" 
+                style={{ marginBottom: '1rem' }}
                 closable
                 onClose={() => setError(null)}
               />
@@ -444,7 +443,7 @@ const CuratorLayoutEditor: React.FC = () => {
                 description={successMessage} 
                 type="success" 
                 showIcon 
-                className="mb-4" 
+                style={{ marginBottom: '1rem' }}
                 closable
                 onClose={() => setSuccessMessage(null)}
               />
@@ -526,8 +525,8 @@ const CuratorLayoutEditor: React.FC = () => {
                 ) : (
                   <Card>
                     <div className="text-center py-12 px-4">
-                      <Title level={4} className="text-gray-500">No Wall Selected</Title>
-                      <Text className="text-gray-400 block mb-6">
+                      <Title level={4} style={{ color: '#6b7280' }}>No Wall Selected</Title>
+                      <Text style={{ display: 'block', marginBottom: '1.5rem', color: '#9ca3af' }}>
                         Select a wall from the list or create a new wall to start arranging artworks.
                       </Text>
                       <Button 
@@ -548,9 +547,9 @@ const CuratorLayoutEditor: React.FC = () => {
             </div>
             
             {/* Help information */}
-            <Card className="mt-6 bg-blue-50">
+            <Card style={{ backgroundColor: '#eef2ff', marginTop: '1.5rem' }}>
               <div className="flex">
-                <InfoCircleOutlined className="text-blue-500 text-lg mr-3 mt-1" />
+                <InfoCircleOutlined style={{ color: '#6366f1', fontSize: '1.125rem', marginRight: '0.75rem', marginBottom: '9.5rem' }} />
                 <div>
                   <Title level={5}>How to Use the Layout Editor</Title>
                   <Paragraph>
@@ -615,7 +614,7 @@ const CuratorLayoutEditor: React.FC = () => {
         confirmLoading={savingLayout}
       >
         <div className="py-2">
-          <ExclamationCircleOutlined className="text-warning text-xl mr-2" />
+          <ExclamationCircleOutlined style={{ color: '#f59e0b', fontSize: '1.25rem', marginRight: '0.5rem'}} />
           <span>
             Are you sure you want to remove all artworks from this wall? This action cannot be undone.
           </span>
@@ -626,6 +625,6 @@ const CuratorLayoutEditor: React.FC = () => {
 };
 
 export default withProtectedRoute(CuratorLayoutEditor, {
-    requiredRoles: [UserRole.CURATOR, UserRole.ADMIN],
+    requiredRoles: [UserRole.CURATOR],
     redirectTo: '/unauthorized',
 });

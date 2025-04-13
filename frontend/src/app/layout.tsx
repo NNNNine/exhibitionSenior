@@ -3,7 +3,7 @@ import { Inter } from 'next/font/google';
 import { ConfigProvider, App } from 'antd';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { NotificationProvider } from '@/contexts/NotificationContext';
-import RouteProtectionProvider from '@/contexts/RouteProtectionContext';
+// import RouteProtectionProvider from '@/contexts/RouteProtectionContext';
 import Layout from '@/components/layout/Layout';
 import '@/styles/globals.css';
 import '@ant-design/v5-patch-for-react-19';

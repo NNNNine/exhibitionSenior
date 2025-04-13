@@ -171,10 +171,10 @@ const ArtworkDetailPage: React.FC = () => {
   }
 
   const isArtist = user?.id === artwork.artistId;
-  // const isCurator = user?.role === 'curator';
-  const isAdmin = user?.role === 'admin';
-  const canEdit = isArtist || isAdmin;
-  const canDelete = isArtist || isAdmin;
+  const isCurator = user?.role === 'curator';
+  // const isAdmin = user?.role === 'admin';
+  const canEdit = isArtist || isCurator;
+  const canDelete = isArtist || isCurator;
 
   return (
     <div className="max-w-6xl mx-auto py-8 px-4">

@@ -304,6 +304,6 @@ const ArtistDashboard: React.FC = () => {
 };
 
 export default withProtectedRoute(ArtistDashboard, {
-  requiredRoles: [UserRole.ARTIST, UserRole.ADMIN],
+  requiredRoles: [UserRole.ARTIST, UserRole.CURATOR],
   redirectTo: '/unauthorized',
 })
