@@ -77,6 +77,7 @@ export const updateWallLayout = async (wallId: string, data: WallLayoutData): Pr
  */
 export const getArtworksForPlacement = async (): Promise<Artwork[]> => {
   const response = await api.get('/exhibition/stockpile');
+  console.log('Artworks for placement:', response);
   return response.data;
 };
 

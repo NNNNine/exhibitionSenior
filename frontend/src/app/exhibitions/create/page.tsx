@@ -7,7 +7,7 @@ import { ProtectedRoute } from '@/contexts/AuthContext';
 import { UserRole } from '@/types/user.types';
 import ExhibitionCreateForm from '@/components/exhibition/ExhibitionCreateForm';
 import { ExhibitionCreateData } from '@/types/exhibition.types';
-import { createExhibition } from '@/lib/api/index';
+import { createOrUpdateExhibition } from '@/lib/api/index';
 
 const ExhibitionCreatePage: React.FC = () => {
   const router = useRouter();
@@ -16,7 +16,7 @@ const ExhibitionCreatePage: React.FC = () => {
   const handleSubmit = async (data: ExhibitionCreateData) => {
     setLoading(true);
     try {
-      const exhibition = await createExhibition(data);
+      const exhibition = await createOrUpdateExhibition(data);
       message.success('Exhibition created successfully!');
       
       // Redirect to exhibition detail page
@@ -29,7 +29,7 @@ const ExhibitionCreatePage: React.FC = () => {
   };
 
   return (
-    <ProtectedRoute requiredRoles={[UserRole.CURATOR, UserRole.ADMIN]}>
+    <ProtectedRoute requiredRoles={[UserRole.CURATOR]}>
       <div className="max-w-3xl mx-auto py-8 px-4">
         <h1 className="text-2xl font-bold mb-6">Create New Exhibition</h1>
         

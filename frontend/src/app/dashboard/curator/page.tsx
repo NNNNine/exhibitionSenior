@@ -1,12 +1,24 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Card, Tabs, Button, Statistic, Table, Tag, message, Spin, Modal, Tooltip, Badge, Alert, Drawer, List, Avatar, Empty, Space, Image } from 'antd';
-import { PlusOutlined, CheckCircleOutlined, CloseCircleOutlined, EyeOutlined, BellOutlined, PictureOutlined, UserOutlined, SettingOutlined, LayoutOutlined } from '@ant-design/icons';
+import { Card, Tabs, Button, Statistic, Table, Tag, message, Spin, Modal, Tooltip, Badge, Alert, Drawer, List, Avatar, Empty, Space, Image, Popconfirm, Input, Divider } from 'antd';
+import { 
+  PlusOutlined, 
+  CheckCircleOutlined, 
+  CloseCircleOutlined, 
+  EyeOutlined, 
+  BellOutlined, 
+  PictureOutlined, 
+  UserOutlined, 
+  SettingOutlined, 
+  LayoutOutlined,
+  DeleteOutlined,
+  InfoCircleOutlined
+} from '@ant-design/icons';
 import { useRouter } from 'next/navigation';
 import { withProtectedRoute } from '@/contexts/AuthContext';
 import { UserRole } from '@/types/user.types';
-import { getExhibition, getArtworks, approveArtwork, rejectArtwork } from '@/lib/api/index';
+import { getExhibition, getArtworks, approveArtwork, rejectArtwork, deleteArtwork } from '@/lib/api/index';
 import { useNotifications } from '@/contexts/NotificationContext';
 import { Exhibition } from '@/types/exhibition.types';
 import { Artwork, ArtworkStatus } from '@/types/artwork.types';
@@ -17,7 +29,10 @@ import CuratorNavLinks from '@/components/curator/CuratorNavLink';
 const CuratorDashboard: React.FC = () => {
   const router = useRouter();
   const { notifications, unreadCount, markAsRead } = useNotifications();
-  
+  const [rejectionModalVisible, setRejectionModalVisible] = useState<boolean>(false);
+  const [rejectReason, setRejectReason] = useState<string>('');
+  const [selectedArtwork, setSelectedArtwork] = useState<Artwork | null>(null);
+  const [detailModalVisible, setDetailModalVisible] = useState<boolean>(false);
   const [exhibition, setExhibition] = useState<Exhibition>();
   const [pendingArtworks, setPendingArtworks] = useState<Artwork[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -27,12 +42,22 @@ const CuratorDashboard: React.FC = () => {
     totalUsers: 0,
     activeExhibitions: 0
   });
+
+  const [pagination, setPagination] = useState({
+      current: 1,
+      pageSize: 10,
+      total: 0
+  });
   
   // State for notification drawer
   const [notificationDrawerOpen, setNotificationDrawerOpen] = useState(false);
   
   // State for new artwork notifications
   const [newArtworkNotifications, setNewArtworkNotifications] = useState<any[]>([]);
+
+  // State for handle message
+  const [error, setError] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -41,35 +66,25 @@ const CuratorDashboard: React.FC = () => {
         
         // Get all exhibitions curated by current user
         const {exhibition: fetchedExhibition} = await getExhibition();
-
-        // Get all artworks pending approval
-        const { artworks: fetchedArtworks } = await getArtworks({
-          status: ArtworkStatus.PENDING,
-          limit: 5,
-        });
-        
-        const pendingArts = fetchedArtworks;
-
         setExhibition(fetchedExhibition);
-        setPendingArtworks(pendingArts);
         
-        // Calculate statistics
-        setStats({
-          pendingApproval: pendingArts.length,
-          totalArtworks: 100, // This would come from an actual API call
+        // Update statistics with actual counts
+        setStats(prev => ({
+          ...prev,
           totalUsers: 25,     // This would come from an actual API call
           activeExhibitions: fetchedExhibition?.isActive ? 1 : 0,
-        });
+        }));
       } catch (error) {
         console.error('Error fetching curator data:', error);
-        message.error('Failed to load dashboard data');
+        setError('Failed to load dashboard data');
       } finally {
         setLoading(false);
       }
     };
 
     fetchData();
-    
+    fetchArtworksData(pagination.current, pagination.pageSize);
+
     // Set up Socket.IO for real-time notifications
     const socket = getSocketClient();
     authenticateSocket(crypto.randomUUID(), UserRole.CURATOR); // This would use actual user ID
@@ -111,6 +126,41 @@ const CuratorDashboard: React.FC = () => {
       socket.off('new-artwork');
     };
   }, [router]);
+
+  const fetchArtworksData = async (
+      page = pagination.current, 
+      pageSize = pagination.pageSize, 
+    ) => {
+      setLoading(true);
+      try {
+        const params: any = {
+          page,
+          limit: pageSize,
+          status: ArtworkStatus.PENDING // Specifically fetch only pending artworks
+        };
+        
+        const { artworks: fetchedArtworks, pagination: paginationData } = await getArtworks(params);
+        
+        setPendingArtworks(fetchedArtworks);
+        setPagination({
+          current: paginationData.page,
+          pageSize: paginationData.limit,
+          total: paginationData.total
+        });
+        
+        // Update the pending approval stat
+        setStats(prev => ({
+          ...prev,
+          totalArtworks: fetchedArtworks.length,
+          pendingApproval: paginationData.total
+        }));
+      } catch (error) {
+        console.error('Error fetching artworks:', error);
+        setError('Failed to load artworks');
+      } finally {
+        setLoading(false);
+      }
+    };
   
   // Filter notifications to show only artwork upload notifications
   const artworkUploadNotifications = notifications.filter(
@@ -134,10 +184,12 @@ const CuratorDashboard: React.FC = () => {
   const handleApproveArtwork = async (artworkId: string) => {
     try {
       await approveArtwork(artworkId);
-      message.success('Artwork approved successfully');
+      setSuccessMessage('Artwork approved successfully');
       
-      // Update local state by removing the approved artwork from pending list
-      setPendingArtworks(prev => prev.filter(artwork => artwork.id !== artworkId));
+      // Update local state
+      setPendingArtworks(prev => 
+        prev.filter(artwork => artwork.id !== artworkId)
+      );
       
       // Update stats
       setStats(prev => ({
@@ -145,19 +197,34 @@ const CuratorDashboard: React.FC = () => {
         pendingApproval: Math.max(0, prev.pendingApproval - 1)
       }));
     } catch (error) {
-      console.error('Error approving artwork:', error);
-      message.error('Failed to approve artwork');
+      console.error('Failed to approve artwork:', error);
+      setError('Failed to approve artwork');
     }
   };
 
-  // Handle artwork rejection
-  const handleRejectArtwork = async (artworkId: string) => {
+  // Handle artwork rejection modal
+  const handleRejectClick = (artwork: Artwork) => {
+    setSelectedArtwork(artwork);
+    setRejectionModalVisible(true);
+  };
+
+  // Handle artwork rejection submission
+  const handleRejectArtwork = async () => {
+    if (!selectedArtwork) return;
+    
     try {
-      await rejectArtwork(artworkId);
-      message.success('Artwork rejected successfully');
+      await rejectArtwork(selectedArtwork.id, rejectReason);
+      setSuccessMessage('Artwork rejected successfully');
       
-      // Update local state by removing the rejected artwork from pending list
-      setPendingArtworks(prev => prev.filter(artwork => artwork.id !== artworkId));
+      // Update local state
+      setPendingArtworks(prev => 
+        prev.filter(artwork => artwork.id !== selectedArtwork.id)
+      );
+      
+      // Close modal and reset
+      setRejectionModalVisible(false);
+      setRejectReason('');
+      setSelectedArtwork(null);
       
       // Update stats
       setStats(prev => ({
@@ -165,9 +232,35 @@ const CuratorDashboard: React.FC = () => {
         pendingApproval: Math.max(0, prev.pendingApproval - 1)
       }));
     } catch (error) {
-      console.error('Error rejecting artwork:', error);
-      message.error('Failed to reject artwork');
+      console.error('Failed to reject artwork:', error);
+      setError('Failed to reject artwork');
     }
+  };
+  
+  // Handle artwork deletion
+  const handleDeleteArtwork = async (artworkId: string) => {
+    try {
+      await deleteArtwork(artworkId);
+      setSuccessMessage('Artwork deleted successfully');
+      
+      // Remove from local state
+      setPendingArtworks(prev => prev.filter(artwork => artwork.id !== artworkId));
+      
+      // Update stats
+      setStats(prev => ({
+        ...prev,
+        pendingApproval: Math.max(0, prev.pendingApproval - 1),
+        totalArtworks: Math.max(0, prev.totalArtworks - 1)
+      }));
+    } catch (error) {
+      console.error('Failed to delete artwork:', error);
+      message.error('Failed to delete artwork');
+    }
+  };
+
+  const handleViewDetails = (artwork: Artwork) => {
+    setSelectedArtwork(artwork);
+    setDetailModalVisible(true);
   };
 
   // Define columns for the pending approvals table
@@ -176,67 +269,133 @@ const CuratorDashboard: React.FC = () => {
       title: 'Thumbnail',
       dataIndex: 'thumbnailUrl',
       key: 'thumbnailUrl',
+      width: 120,
       render: (text: string, record: Artwork) => (
         <Image 
-          src={formatImageUrl(record.thumbnailUrl || record.fileUrl)}
-          alt={record.title} 
-          style={{ width: 60, height: 60, objectFit: 'cover' }} 
+          src={formatImageUrl(text || record.fileUrl)} 
+          alt={record.title}
+          width={80}
+          height={80}
+          style={{ objectFit: 'cover' }}
+          fallback="/images/placeholder-image.png"
         />
       ),
     },
     {
-      title: 'Title',
-      dataIndex: 'title',
-      key: 'title',
-    },
-    {
-      title: 'Artist',
-      dataIndex: 'artist',
-      key: 'artist',
-      render: (artist: any) => artist?.username || 'Unknown Artist',
-    },
-    {
-      title: 'Category',
-      dataIndex: 'category',
-      key: 'category',
-      render: (text: string) => <Tag color="blue">{text}</Tag>,
-    },
-    {
-      title: 'Submitted',
-      dataIndex: 'createdAt',
-      key: 'createdAt',
-      render: (text: string) => formatDate(text),
-    },
-    {
-      title: 'Actions',
-      key: 'actions',
-      render: (_: any, record: Artwork) => (
-        <div className="space-x-2">
-          <Tooltip title="View Details">
-            <Button 
-              icon={<EyeOutlined />} 
-              onClick={() => router.push(`/artworks/${record.id}`)} 
-              size="small" 
-            />
-          </Tooltip>
-          <Tooltip title="Approve">
-            <Button 
-              icon={<CheckCircleOutlined />} 
-              onClick={() => handleApproveArtwork(record.id)}
-              type="primary" 
-              size="small" 
-            />
-          </Tooltip>
-          <Tooltip title="Reject">
-            <Button 
-              icon={<CloseCircleOutlined />} 
-              onClick={() => handleRejectArtwork(record.id)}
-              danger 
-              size="small" 
-            />
-          </Tooltip>
-        </div>
-      ),
+        title: 'Title',
+        dataIndex: 'title',
+        key: 'title',
+        render: (text: string, record: Artwork) => (
+          <Button 
+            type="link" 
+            onClick={() => router.push(`/artworks/${record.id}`)}
+          >
+            {text}
+          </Button>
+        ),
+      },
+      {
+        title: 'Artist',
+        dataIndex: 'artist',
+        key: 'artist',
+        render: (artist: any, record: Artwork) => (
+          <Button 
+            type="link" 
+            onClick={() => artist && router.push(`/profile/${artist.username}`)}
+          >
+            {artist?.username || `Artist #${record.artistId}`}
+          </Button>
+        ),
+      },
+      {
+        title: 'Category',
+        dataIndex: 'category',
+        key: 'category',
+        render: (text: string) => <Tag color="blue">{text}</Tag>,
+      },
+      {
+        title: 'Uploaded',
+        dataIndex: 'createdAt',
+        key: 'createdAt',
+        render: (date: string) => formatDate(date),
+      },
+      {
+        title: 'Status',
+        dataIndex: 'status',
+        key: 'status',
+        render: (status: ArtworkStatus) => {
+          let color: 'success' | 'error' | 'warning' | 'default' | 'processing' | undefined = undefined;
+          let text = '';
+          
+          switch (status) {
+            case ArtworkStatus.APPROVED:
+              color = 'success';
+              text = 'Approved';
+              break;
+            case ArtworkStatus.REJECTED:
+              color = 'error';
+              text = 'Rejected';
+              break;
+            case ArtworkStatus.PENDING:
+            default:
+              color = 'warning';
+              text = 'Pending';
+              break;
+          }
+          
+          return <Badge status={color} text={text} />;
+        },
+      },
+      {
+        title: 'Actions',
+        key: 'actions',
+        render: (_: any, record: Artwork) => (
+          <Space size="small">
+            <Tooltip title="View Details">
+              <Button 
+                icon={<EyeOutlined />} 
+                onClick={() => handleViewDetails(record)} 
+                size="small"
+              />
+            </Tooltip>
+            
+            {record.status === ArtworkStatus.PENDING && (
+              <>
+                <Tooltip title="Approve Artwork">
+                  <Button 
+                    type="primary" 
+                    icon={<CheckCircleOutlined />} 
+                    size="small"
+                    onClick={() => handleApproveArtwork(record.id)}
+                  />
+                </Tooltip>
+                
+                <Tooltip title="Reject Artwork">
+                  <Button 
+                    danger 
+                    icon={<CloseCircleOutlined />} 
+                    size="small"
+                    onClick={() => handleRejectClick(record)}
+                  />
+                </Tooltip>
+                <Tooltip title="Delete Artwork">
+                  <Popconfirm
+                    title="Are you sure you want to delete this artwork?"
+                    onConfirm={() => handleDeleteArtwork(record.id)}
+                    okText="Yes"
+                    cancelText="No"
+                  >
+                    <Button 
+                      danger 
+                      icon={<DeleteOutlined />} 
+                      size="small"
+                    />
+                  </Popconfirm>
+                </Tooltip>
+              </>
+            )}
+          </Space>
+        ),
     },
   ];
 
@@ -246,6 +405,33 @@ const CuratorDashboard: React.FC = () => {
       
       {/* Navigation Menu */}
       <CuratorNavLinks />
+
+      {/* Error Message */}
+      {error && (
+        <Alert
+          message="Error"
+          description={error}
+          type="error"
+          showIcon
+          // className="mb-6"
+          style={{ marginTop: '1.5rem', marginBottom: '1.5rem' }} 
+          closable
+          onClose={() => setError(null)}
+        />
+      )}
+
+      {successMessage && (
+        <Alert 
+          message="Success" 
+          description={successMessage} 
+          type="success" 
+          showIcon 
+          // className="mb-4"
+          style={{ marginTop: '1.5rem', marginBottom: '1.5rem' }} 
+          closable
+          onClose={() => setSuccessMessage(null)}
+        />
+      )}
       
       {/* Real-time notification banner */}
       {unreadCount > 0 && (
@@ -267,7 +453,7 @@ const CuratorDashboard: React.FC = () => {
           type="info"
           showIcon
           closable
-          style={{ marginBottom: '1.5rem' }}
+          style={{ marginBottom: '1.5rem', marginTop: '0.5rem' }}
         />
       )}
       
@@ -433,7 +619,7 @@ const CuratorDashboard: React.FC = () => {
                     </div>
                   ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <Card title="Current Exhibition" bordered={false}>
+                      <Card title="Current Exhibition" variant="borderless">
                         {exhibition ? (
                           <div>
                             <h3 className="text-lg font-medium mb-2">{exhibition.title}</h3>
@@ -499,6 +685,122 @@ const CuratorDashboard: React.FC = () => {
           ]}
         />
       </Card>
+
+      {/* Artwork Rejection Modal */}
+      <Modal
+        title="Reject Artwork"
+        open={rejectionModalVisible}
+        onCancel={() => {
+          setRejectionModalVisible(false);
+          setRejectReason('');
+          setSelectedArtwork(null);
+        }}
+        onOk={handleRejectArtwork}
+        okText="Reject"
+        okButtonProps={{ danger: true }}
+      >
+        <div className="py-2">
+          <p className="mb-4">
+            Please provide a reason for rejecting 
+            <strong> &quot;{selectedArtwork?.title}&quot;</strong>
+          </p>
+          
+          <Input.TextArea
+            rows={4}
+            value={rejectReason}
+            onChange={e => setRejectReason(e.target.value)}
+            placeholder="Explain why this artwork is being rejected..."
+          />
+          
+          <div className="mt-4 flex items-center text-gray-500">
+            <InfoCircleOutlined className="mr-2" />
+            <small>
+              This reason will be sent to the artist to help them understand why their artwork was rejected.
+            </small>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Artwork Details Modal */}
+      {selectedArtwork && (
+        <Modal
+          title="Artwork Details"
+          open={detailModalVisible}
+          onCancel={() => setDetailModalVisible(false)}
+          footer={[
+            <Button key="close" onClick={() => setDetailModalVisible(false)}>
+              Close
+            </Button>,
+            <Button 
+              key="view" 
+              type="primary" 
+              onClick={() => router.push(`/artworks/${selectedArtwork.id}`)}
+            >
+              View Full Page
+            </Button>
+          ]}
+          width={720}
+        >
+          <div className="flex flex-col md:flex-row gap-6">
+            <div className="w-full md:w-1/2">
+              <Image
+                src={formatImageUrl(selectedArtwork.fileUrl)}
+                alt={selectedArtwork.title}
+                className="w-full"
+              />
+            </div>
+            
+            <div className="w-full md:w-1/2">
+              <h3 className="text-xl font-bold mb-2">{selectedArtwork.title}</h3>
+              
+              <p className="mb-4">
+                By: <strong>{selectedArtwork.artist?.username || `Artist #${selectedArtwork.artistId}`}</strong>
+              </p>
+              
+              <Divider orientation="left">Details</Divider>
+              
+              <p className="whitespace-pre-line mb-4">{selectedArtwork.description}</p>
+              
+              <p>
+                <strong>Category:</strong> {selectedArtwork.category}
+              </p>
+              
+              <p>
+                <strong>Creation Date:</strong> {formatDate(selectedArtwork.creationDate)}
+              </p>
+              
+              <p>
+                <strong>Upload Date:</strong> {formatDate(selectedArtwork.createdAt)}
+              </p>
+              
+              <div className="mt-4">
+                <strong>Tags:</strong>{' '}
+                {selectedArtwork.tags && selectedArtwork.tags.length > 0 ? (
+                  <div className="flex flex-wrap gap-1 mt-2">
+                    {selectedArtwork.tags.map(tag => (
+                      <Tag key={tag}>{tag}</Tag>
+                    ))}
+                  </div>
+                ) : (
+                  <span className="text-gray-500">No tags</span>
+                )}
+              </div>
+              
+              <div className="mt-4">
+                <strong>Status:</strong>{' '}
+                <Tag 
+                  color={
+                    selectedArtwork.status === ArtworkStatus.APPROVED ? 'green' :
+                    selectedArtwork.status === ArtworkStatus.REJECTED ? 'red' : 'orange'
+                  }
+                >
+                  {selectedArtwork.status}
+                </Tag>
+              </div>
+            </div>
+          </div>
+        </Modal>
+      )}
       
       {/* Notifications Drawer */}
       <Drawer

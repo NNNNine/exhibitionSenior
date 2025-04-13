@@ -1,7 +1,7 @@
 // frontend/src/app/curator/layout/page.tsx
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { DndProvider, TouchTransition, MouseTransition } from 'react-dnd-multi-backend';
 import { HTML5Backend } from 'react-dnd-html5-backend'
 import { TouchBackend } from 'react-dnd-touch-backend'
@@ -104,19 +104,21 @@ const CuratorLayoutEditor: React.FC = () => {
   
   // Filter stockpile to only show artworks that aren't already placed
   // and filter by search text if provided
-  const availableArtworks = stockpile
-    .filter(artwork => !placedArtworkIds.includes(artwork.id))
-    .filter(artwork => 
-      searchText ? 
-        artwork.title.toLowerCase().includes(searchText.toLowerCase()) || 
-        artwork.artist?.username?.toLowerCase().includes(searchText.toLowerCase()) || 
-        artwork.category.toLowerCase().includes(searchText.toLowerCase())
-        : true
-    )
-    .map(artwork => ({
-      ...artwork,
-      type: 'ARTWORK' as const
-    }));
+  const availableArtworks = useMemo(() => {
+    return stockpile
+      .filter(artwork => !placedArtworkIds.includes(artwork.id))
+      .filter(artwork => 
+        searchText ? 
+          artwork.title.toLowerCase().includes(searchText.toLowerCase()) || 
+          artwork.artist?.username?.toLowerCase().includes(searchText.toLowerCase()) || 
+          artwork.category.toLowerCase().includes(searchText.toLowerCase())
+          : true
+      )
+      .map(artwork => ({
+        ...artwork,
+        type: 'ARTWORK' as const
+      }));
+  }, [stockpile, placedArtworkIds, searchText]);
 
   // Load walls and stockpile data
   const loadData = useCallback(async () => {
@@ -145,6 +147,8 @@ const CuratorLayoutEditor: React.FC = () => {
   // Load data on component mount
   useEffect(() => {
     loadData();
+    console.log('stockpile', stockpile);
+    console.log('availableArtworks', availableArtworks);
   }, [loadData]);
   
   // Auto-hide success message after 3 seconds

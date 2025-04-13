@@ -80,7 +80,7 @@ export const createOrUpdateExhibition = async (req: AuthRequest, res: Response):
     
     // Find existing exhibition
     let exhibition = await exhibitionRepository.findOne({
-      order: { createdAt: 'DESC' }
+      where: { isActive: true }
     });
     
     if (!exhibition) {
@@ -370,7 +370,7 @@ export const getArtworksForPlacement = async (_req: Request, res: Response): Pro
       where: { status: ArtworkStatus.APPROVED },
       relations: ['artist']
     });
-    
+    // console.log('artworks', artworks);
     res.status(200).json(artworks);
   } catch (error) {
     logger.error('Get artworks for placement error:', error);

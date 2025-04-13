@@ -55,7 +55,11 @@ app.use(cors({
 }));
 
 // Add Helmet for security headers
-app.use(helmet());
+app.use(helmet({
+  crossOriginResourcePolicy: {
+    policy: "cross-origin"
+  }
+}));
 app.use(compression());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -65,7 +69,13 @@ app.use('/api', limiter);
 app.use(csrfMiddleware);
 
 // Static files
-app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
+app.use('/uploads', (_req, res, next) => {
+  // Set CORS headers specifically for static files
+  res.setHeader('Access-Control-Allow-Origin', '*'); // Or your specific frontend URL like 'http://localhost:3000'
+  res.setHeader('Access-Control-Allow-Methods', 'GET');
+  res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+  next();
+}, express.static(path.join(__dirname, '../uploads')));
 
 // Health check
 app.get('/health', (_req, res) => {

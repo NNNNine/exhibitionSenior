@@ -24,7 +24,8 @@ import {
   DeleteOutlined, 
   LockOutlined, 
   SearchOutlined,
-  UserAddOutlined
+  UserAddOutlined,
+  ArrowLeftOutlined
 } from '@ant-design/icons';
 import { useRouter } from 'next/navigation';
 import { withProtectedRoute } from '@/contexts/AuthContext';
@@ -246,6 +247,13 @@ const UserManagementPage: React.FC = () => {
 
   return (
     <div className="p-6 max-w-7xl mx-auto">
+      <Button 
+        onClick={() => router.back()} 
+        style={{ marginBottom: '1.5rem' }}
+        icon={<ArrowLeftOutlined />}
+      >
+        Back
+      </Button>
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">User Management</h1>
         <Button 

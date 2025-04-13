@@ -111,12 +111,15 @@ export const notifyArtworkApproval = async (
 ): Promise<void> => {
   try {
     const message = `Your artwork "${title}" was approved by ${curatorName}`;
-    
+    const curators = await getCuratorsForNotification();
+
+    const curator = curators.find(curator => curator.username === curatorName);
+
     await createNotification(
       NotificationType.ARTWORK_APPROVED,
       message,
       artistId,
-      curatorName,
+      curator?.id,
       artworkId
     );
     

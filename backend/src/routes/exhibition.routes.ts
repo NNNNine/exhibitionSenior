@@ -23,7 +23,7 @@ router.get('/', getExhibition);
 router.get('/walls', getWalls);
 
 // Protected routes - Curator or Admin only
-router.post('/', ...withAuth([UserRole.CURATOR, UserRole.ADMIN]),
+router.post('/', ...withAuth([UserRole.CURATOR]),
   validate([
     body('title').isLength({ min: 1, max: 100 }).withMessage('Title is required and must be under 100 characters'),
     body('description').notEmpty().withMessage('Description is required'),
@@ -35,14 +35,14 @@ router.post('/', ...withAuth([UserRole.CURATOR, UserRole.ADMIN]),
 );
 
 // Wall management routes - Curator or Admin only
-router.post('/walls', ...withAuth([UserRole.CURATOR, UserRole.ADMIN]),
+router.post('/walls', ...withAuth([UserRole.CURATOR]),
   validate([
     body('name').isLength({ min: 1, max: 100 }).withMessage('Wall name is required and must be under 100 characters')
   ]),
   createWall
 );
 
-router.put('/walls/:id', ...withAuth([UserRole.CURATOR, UserRole.ADMIN]),
+router.put('/walls/:id', ...withAuth([UserRole.CURATOR]),
   validate([
     param('id').isUUID().withMessage('Invalid wall ID'),
     body('name').optional().isLength({ min: 1, max: 100 }).withMessage('Wall name must be under 100 characters'),
@@ -51,7 +51,7 @@ router.put('/walls/:id', ...withAuth([UserRole.CURATOR, UserRole.ADMIN]),
   updateWall
 );
 
-router.delete('/walls/:id', ...withAuth([UserRole.CURATOR, UserRole.ADMIN]),
+router.delete('/walls/:id', ...withAuth([UserRole.CURATOR]),
   validate([
     param('id').isUUID().withMessage('Invalid wall ID')
   ]),
@@ -59,7 +59,7 @@ router.delete('/walls/:id', ...withAuth([UserRole.CURATOR, UserRole.ADMIN]),
 );
 
 // Wall layout routes
-router.post('/walls/:id/layout', ...withAuth([UserRole.CURATOR, UserRole.ADMIN]),
+router.post('/walls/:id/layout', ...withAuth([UserRole.CURATOR]),
   validate([
     param('id').isUUID().withMessage('Invalid wall ID'),
     body('placements').isArray().withMessage('Placements must be an array'),
@@ -73,7 +73,7 @@ router.post('/walls/:id/layout', ...withAuth([UserRole.CURATOR, UserRole.ADMIN])
 );
 
 // Stockpile route - Get all approved artworks for placement
-router.get('/stockpile', ...withAuth([UserRole.CURATOR, UserRole.ADMIN]), 
+router.get('/stockpile', ...withAuth([UserRole.CURATOR]), 
   getArtworksForPlacement
 );
 

@@ -113,13 +113,16 @@ export const formatDate = (
  * @returns A fully qualified URL for the image
  */
 export const formatImageUrl = (url: string | undefined | null): string => {
-  if (!url) return '';
+  if (!url) return '/images/placeholder-image.jpg';
   
   // If URL already starts with http(s):// or data:, it's already formatted
   if (url.startsWith('http') || url.startsWith('data:')) {
     return url;
   }
   
-  // Otherwise, prepend the backend URL
-  return `${process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'http://localhost:3001'}${url}`;
-};
+  // Make sure the URL starts with a slash
+  const formattedUrl = url.startsWith('/') ? url : `/${url}`;
+  
+  // The backend URL should be port 3001 (not 3000, which is likely your frontend)
+  return `http://localhost:3001${formattedUrl}`;
+}
