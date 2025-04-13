@@ -9,7 +9,8 @@ import {
   updateWall,
   deleteWall,
   updateWallLayout,
-  getArtworksForPlacement
+  getArtworksForPlacement,
+  getWallsWithImages
 } from '../controllers/exhibition.controller';
 import { withAuth } from '../middlewares/auth.middleware';
 import { validate } from '../middlewares/validation.middleware';
@@ -76,5 +77,7 @@ router.post('/walls/:id/layout', ...withAuth([UserRole.CURATOR]),
 router.get('/stockpile', ...withAuth([UserRole.CURATOR]), 
   getArtworksForPlacement
 );
+
+router.get('/:exhibitionId/walls', getWallsWithImages);
 
 export default router;

@@ -1,5 +1,5 @@
 // backend/src/controllers/exhibition.controller.ts
-import { Request, Response } from 'express';
+import { Request, Response, RequestHandler } from 'express';
 import { AuthRequest } from '../middlewares/auth.middleware';
 import { AppDataSource } from '../config/database';
 import { Exhibition } from '../entities/Exhibition';
@@ -376,4 +376,42 @@ export const getArtworksForPlacement = async (_req: Request, res: Response): Pro
     logger.error('Get artworks for placement error:', error);
     res.status(500).json({ message: 'Server error' });
   }
+};
+
+export const getWallsWithImages: RequestHandler = async (req, res) => {
+  const exhibitionId = req.params.exhibitionId;
+
+  const walls = await AppDataSource.getRepository(Wall).find({
+    where: { exhibitionId },
+    relations: ['placements', 'placements.artwork'],
+    order: {
+      displayOrder: 'ASC'
+    }
+  });
+
+  const wallResults = walls.map(wall => {
+    const images: Record<'left' | 'center' | 'right', string | null> = {
+      left: null,
+      center: null,
+      right: null
+    };
+
+    wall.placements.forEach(placement => {
+      if (
+        placement.position === PlacementPosition.LEFT ||
+        placement.position === PlacementPosition.CENTER ||
+        placement.position === PlacementPosition.RIGHT
+      ) {
+        images[placement.position] = placement.artwork?.fileUrl || null;
+      }
+    });
+
+    return {
+      wallId: wall.id,
+      name: wall.name,
+      images
+    };
+  });
+
+  res.json(wallResults);
 };
