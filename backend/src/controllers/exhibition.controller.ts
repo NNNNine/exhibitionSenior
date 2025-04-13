@@ -157,7 +157,7 @@ export const createWall = async (req: AuthRequest, res: Response): Promise<void>
     
     // Get the current exhibition
     const exhibition = await exhibitionRepository.findOne({
-      order: { createdAt: 'DESC' }
+      where: { isActive: true },
     });
     
     if (!exhibition) {

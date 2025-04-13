@@ -140,6 +140,10 @@ const CuratorDashboard: React.FC = () => {
         };
         
         const { artworks: fetchedArtworks, pagination: paginationData } = await getArtworks(params);
+
+        fetchedArtworks.filter((artwork) => {
+          return artwork.status === ArtworkStatus.PENDING;
+        })
         
         setPendingArtworks(fetchedArtworks);
         setPagination({
@@ -185,6 +189,10 @@ const CuratorDashboard: React.FC = () => {
     try {
       await approveArtwork(artworkId);
       setSuccessMessage('Artwork approved successfully');
+
+      pendingArtworks.filter((artwork) => {
+        return artwork.status === ArtworkStatus.PENDING;
+      })
       
       // Update local state
       setPendingArtworks(prev => 
@@ -215,6 +223,10 @@ const CuratorDashboard: React.FC = () => {
     try {
       await rejectArtwork(selectedArtwork.id, rejectReason);
       setSuccessMessage('Artwork rejected successfully');
+
+      pendingArtworks.filter((artwork) => {
+        return artwork.status === ArtworkStatus.PENDING;
+      })
       
       // Update local state
       setPendingArtworks(prev => 
@@ -242,6 +254,10 @@ const CuratorDashboard: React.FC = () => {
     try {
       await deleteArtwork(artworkId);
       setSuccessMessage('Artwork deleted successfully');
+
+      pendingArtworks.filter((artwork) => {
+        return artwork.status === ArtworkStatus.PENDING;
+      })
       
       // Remove from local state
       setPendingArtworks(prev => prev.filter(artwork => artwork.id !== artworkId));
