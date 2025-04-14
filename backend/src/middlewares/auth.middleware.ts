@@ -12,11 +12,7 @@ export interface AuthRequest extends Request {
 /**
  * Middleware to authenticate JWT token and attach user to request
  */
-export const authenticate = async (
-  req: AuthRequest,
-  res: Response,
-  next: NextFunction
-): Promise<void> => {
+export const authenticate = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     // First check for token in cookies (more secure)
     let token = req.cookies.token;

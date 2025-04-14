@@ -1,27 +1,18 @@
 // backend/src/routes/exhibition.routes.ts
 import { Router } from 'express';
 import { body, param } from 'express-validator';
-import { 
-  getExhibition,
-  createOrUpdateExhibition,
-  getWalls,
-  createWall,
-  updateWall,
-  deleteWall,
-  updateWallLayout,
-  getArtworksForPlacement,
-  getWallsWithImages
-} from '../controllers/exhibition.controller';
+import { ExhibitionController } from '../controllers/exhibition.controller';
 import { withAuth } from '../middlewares/auth.middleware';
 import { validate } from '../middlewares/validation.middleware';
 import { UserRole } from '../entities/User';
 import { PlacementPosition } from '../entities/ArtworkPlacement';
 
 const router = Router();
+const exhibitionController = new ExhibitionController();
 
 // Public routes
-router.get('/', getExhibition);
-router.get('/walls', getWalls);
+router.get('/', exhibitionController.getExhibition);
+router.get('/walls', exhibitionController.getWalls);
 
 // Protected routes - Curator or Admin only
 router.post('/', ...withAuth([UserRole.CURATOR]),
@@ -32,7 +23,7 @@ router.post('/', ...withAuth([UserRole.CURATOR]),
     body('endDate').isISO8601().withMessage('End date must be a valid date'),
     body('isActive').optional().isBoolean().withMessage('isActive must be a boolean')
   ]),
-  createOrUpdateExhibition
+  exhibitionController.createOrUpdateExhibition
 );
 
 // Wall management routes - Curator or Admin only
@@ -40,7 +31,7 @@ router.post('/walls', ...withAuth([UserRole.CURATOR]),
   validate([
     body('name').isLength({ min: 1, max: 100 }).withMessage('Wall name is required and must be under 100 characters')
   ]),
-  createWall
+  exhibitionController.createWall
 );
 
 router.put('/walls/:id', ...withAuth([UserRole.CURATOR]),
@@ -49,14 +40,14 @@ router.put('/walls/:id', ...withAuth([UserRole.CURATOR]),
     body('name').optional().isLength({ min: 1, max: 100 }).withMessage('Wall name must be under 100 characters'),
     body('displayOrder').optional().isInt().withMessage('Display order must be an integer')
   ]),
-  updateWall
+  exhibitionController.updateWall
 );
 
 router.delete('/walls/:id', ...withAuth([UserRole.CURATOR]),
   validate([
     param('id').isUUID().withMessage('Invalid wall ID')
   ]),
-  deleteWall
+  exhibitionController.deleteWall
 );
 
 // Wall layout routes
@@ -70,14 +61,14 @@ router.post('/walls/:id/layout', ...withAuth([UserRole.CURATOR]),
     body('placements.*.rotation').optional().isObject().withMessage('Rotation must be an object'),
     body('placements.*.scale').optional().isObject().withMessage('Scale must be an object')
   ]),
-  updateWallLayout
+  exhibitionController.updateWallLayout
 );
 
 // Stockpile route - Get all approved artworks for placement
 router.get('/stockpile', ...withAuth([UserRole.CURATOR]), 
-  getArtworksForPlacement
+exhibitionController.getArtworksForPlacement
 );
 
-router.get('/:exhibitionId/walls', getWallsWithImages);
+router.get('/:exhibitionId/walls', exhibitionController.getWallsWithImages);
 
 export default router;

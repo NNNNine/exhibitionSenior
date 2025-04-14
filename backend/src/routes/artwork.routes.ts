@@ -1,25 +1,17 @@
 import { Router } from 'express';
 import { body } from 'express-validator';
-import { 
-  getAllArtworks,
-  getArtworkById,
-  createArtwork,
-  updateArtwork,
-  deleteArtwork,
-  approveArtwork,
-  rejectArtwork
-} from '../controllers/artwork.controller';
-
+import { ArtworkController } from '../controllers/artwork.controller';
 import { withAuth } from '../middlewares/auth.middleware';
 import { upload } from '../middlewares/upload.middleware';
 import { validate } from '../middlewares/validation.middleware';
 import { UserRole } from '../entities/User';
 
 const router = Router();
+const artworkController = new ArtworkController();
 
 // Public routes
-router.get('/', getAllArtworks);
-router.get('/:id', getArtworkById);
+router.get('/', artworkController.getAllArtworks);
+router.get('/:id', artworkController.getArtworkById);
 
 // Protected routes - Artist only
 router.post('/', ...withAuth([UserRole.ARTIST]), upload.single('image'),
@@ -29,7 +21,7 @@ router.post('/', ...withAuth([UserRole.ARTIST]), upload.single('image'),
     body('category').notEmpty().withMessage('Category is required'),
     body('tags').optional().isString().withMessage('Tags must be a JSON string array')
   ]),
-  createArtwork
+  artworkController.createArtwork
 );
 
 // Protected routes - Artist or Admin only
@@ -40,20 +32,20 @@ router.put('/:id', ...withAuth([UserRole.ARTIST, UserRole.ADMIN]), upload.single
     body('category').optional(),
     body('tags').optional().isString().withMessage('Tags must be a JSON string array')
   ]),
-  updateArtwork
+  artworkController.updateArtwork
 );
 
 // Protected routes - Artist or Admin only
 router.delete('/:id', ...withAuth([UserRole.ARTIST, UserRole.ADMIN]), 
-  deleteArtwork
+  artworkController.deleteArtwork
 );
 
 // Protected routes - Curator or Admin only
 router.patch('/:id/approve', ...withAuth([UserRole.CURATOR, UserRole.ADMIN]),
-  approveArtwork
+  artworkController.approveArtwork
 );
 router.patch('/:id/reject', ...withAuth([UserRole.CURATOR, UserRole.ADMIN]),
-  rejectArtwork
+  artworkController.rejectArtwork
 );
 
 export default router;
