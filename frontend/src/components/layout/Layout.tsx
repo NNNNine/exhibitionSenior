@@ -100,14 +100,6 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
             icon: <AppstoreOutlined />,
           }
         ];
-      case UserRole.ADMIN:
-        return [
-          {
-            key: 'admin',
-            label: <Link href="/admin">Admin Dashboard</Link>,
-            icon: <DashboardOutlined />,
-          }
-        ];
       default:
         return [];
     }
@@ -195,7 +187,6 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
               mode="horizontal"
               selectedKeys={[getSelectedKey()]}
               items={mainNavItems}
-              className="border-0 flex items-center"
               style={{ 
                 width: '100%',
                 margin: 50,
@@ -223,8 +214,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                 <Dropdown menu={{ items: userMenuItems }} placement="bottomRight">
                   <Button 
                   type="text" 
-                  className="flex"
-                  style={{ alignItems: 'center', color: 'white' }}
+                  style={{ display: 'flex', alignItems: 'center', color: 'white' }}
                   >
                     <Avatar
                       size="small"
@@ -242,7 +232,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                   type="link"
                   icon={<LoginOutlined />}
                   onClick={() => router.push('/auth/login')}
-                  className="text-white"
+                  style={{ color: 'white' }}
                 >
                   Log in
                 </Button>
@@ -260,8 +250,8 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
               type="text"
               icon={<MenuOutlined />}
               onClick={() => setMobileMenuOpen(true)}
-              className="ml-2 md:hidden"
-              style={{ color: '#fff' }}
+              style={{ color: '#fff', marginLeft: '0.5rem', display: 'none' }}
+              className="md:hidden"
             />
           </div>
         </div>

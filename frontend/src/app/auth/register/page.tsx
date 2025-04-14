@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Form, Input, Button, Select, message, Divider } from 'antd';
+import { Form, Input, Button, Select, message, Divider, Alert } from 'antd';
 import { UserOutlined, LockOutlined, MailOutlined, GoogleOutlined, FacebookOutlined } from '@ant-design/icons';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
@@ -22,6 +22,8 @@ interface RegisterFormValues {
 export default function Register() {
   const [loading, setLoading] = useState<boolean>(false);
   const { register } = useAuthContext();
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   // const router = useRouter();
   const [form] = Form.useForm();
 
@@ -31,11 +33,11 @@ export default function Register() {
     setLoading(true);
     try {
       await register(username, email, password, role);
-      message.success('Registration successful!');
+      setSuccessMessage('Registration successful!');
       // Redirection is handled in the register function based on user role
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Registration error:', error);
-      message.error(error instanceof Error
+      setErrorMessage(error instanceof Error
         ? error.message
         : 'Registration failed. Please try again.');
     } finally {
@@ -45,6 +47,32 @@ export default function Register() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+      {/* Error Message */}
+      {errorMessage && (
+        <Alert
+          message="Error"
+          description={errorMessage}
+          type="error"
+          showIcon
+          // className="mb-6"
+          style={{ marginTop: '1.5rem', marginBottom: '1.5rem' }} 
+          closable
+          onClose={() => setErrorMessage(null)}
+        />
+      )}
+
+      {successMessage && (
+        <Alert 
+          message="Success" 
+          description={successMessage} 
+          type="success" 
+          showIcon 
+          // className="mb-4"
+          style={{ marginTop: '1.5rem', marginBottom: '1.5rem' }} 
+          closable
+          onClose={() => setSuccessMessage(null)}
+        />
+      )}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -81,7 +109,7 @@ export default function Register() {
               prefix={<UserOutlined className="site-form-item-icon" />} 
               placeholder="Username"
               size="large"
-              className="rounded-md"
+              style={{ borderRadius: '0.375rem' }}
             />
           </Form.Item>
 
@@ -96,7 +124,7 @@ export default function Register() {
               prefix={<MailOutlined className="site-form-item-icon" />} 
               placeholder="Email address"
               size="large"
-              className="rounded-md"
+              style={{ borderRadius: '0.375rem' }}
             />
           </Form.Item>
 
@@ -111,7 +139,7 @@ export default function Register() {
               prefix={<LockOutlined className="site-form-item-icon" />}
               placeholder="Password"
               size="large"
-              className="rounded-md"
+              style={{ borderRadius: '0.375rem' }}
             />
           </Form.Item>
 
@@ -134,7 +162,7 @@ export default function Register() {
               prefix={<LockOutlined className="site-form-item-icon" />}
               placeholder="Confirm password"
               size="large"
-              className="rounded-md"
+              style={{ borderRadius: '0.375rem' }}
             />
           </Form.Item>
 
@@ -145,7 +173,7 @@ export default function Register() {
             <Select
               placeholder="Select your role"
               size="large"
-              className="rounded-md"
+              style={{ borderRadius: '0.375rem' }}
             >
               <Option value={UserRole.VISITOR}>Visitor</Option>
               <Option value={UserRole.ARTIST}>Artist</Option>
@@ -158,7 +186,7 @@ export default function Register() {
               htmlType="submit"
               size="large"
               loading={loading}
-              className="w-full"
+              style={{ width: '100%' }}
             >
               Create Account
             </Button>
@@ -171,7 +199,7 @@ export default function Register() {
           <Button
             icon={<GoogleOutlined />}
             size="large"
-            className="flex items-center justify-center"
+            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}
             onClick={() => message.info('Google authentication coming soon')}
           >
             Google
@@ -180,7 +208,7 @@ export default function Register() {
           <Button
             icon={<FacebookOutlined />}
             size="large"
-            className="flex items-center justify-center"
+            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}
             onClick={() => message.info('Facebook authentication coming soon')}
           >
             Facebook

@@ -76,13 +76,13 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
         }
       });
 
-      socket.on('connect_error', (err) => {
+      socket.on('connect_error', (err: Error) => {
         console.error('Socket.IO connection error:', err);
       });
 
       // Listen for new artwork notifications (for curators)
-      if (user.role === UserRole.CURATOR || user.role === UserRole.ADMIN) {
-        socket.on('new-artwork', (data) => {
+      if (user.role === UserRole.CURATOR) {
+        socket.on('new-artwork', (data: { id: string; title: string; artist: string; artistId: string }) => {
           console.log('New artwork notification:', data);
           
           // Show toast notification
@@ -118,7 +118,7 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
       // Listen for artwork approval notifications (for artists)
       if (user.role === UserRole.ARTIST) {
-        socket.on('artwork-approved', (data) => {
+        socket.on('artwork-approved', (data: { id: string; title: string; curatorName: string }) => {
           console.log('Artwork approved notification:', data);
           
           // Show toast notification
@@ -150,7 +150,7 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
       
       // Listen for artwork rejection notifications (for artists)
       if (user.role === UserRole.ARTIST) {
-        socket.on('artwork-rejected', (data) => {
+        socket.on('artwork-rejected', (data: { id: string; title: string; reason?: string }) => {
           console.log('Artwork rejected notification:', data);
           
           // Show toast notification
@@ -213,8 +213,8 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
       const { notifications: fetchedNotifications, count } = await getUnreadNotifications();
       setNotifications(fetchedNotifications);
       setUnreadCount(count);
-    } catch (error) {
-      console.error('Error fetching notifications:', error);
+    } catch (error: unknown) {
+      console.error('Error fetching notifications:', error instanceof Error ? error.message : error);
       // Don't update state if there's an error, keep showing existing notifications
     } finally {
       setLoading(false);
@@ -237,8 +237,8 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
       
       // Decrement unread count
       setUnreadCount(prev => Math.max(0, prev - 1));
-    } catch (error) {
-      console.error('Error marking notification as read:', error);
+    } catch (error: unknown) {
+      console.error('Error marking notification as read:', error instanceof Error ? error.message : error);
     }
   };
 
@@ -254,8 +254,8 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
       
       // Reset unread count
       setUnreadCount(0);
-    } catch (error) {
-      console.error('Error marking all notifications as read:', error);
+    } catch (error: unknown) {
+      console.error('Error marking all notifications as read:', error instanceof Error ? error.message : error);
     }
   };
 
