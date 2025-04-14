@@ -85,7 +85,7 @@ const NotificationDropdown: React.FC = () => {
               <div className="flex justify-center py-6">
                 <Spin />
               </div>
-            ) : notifications.length > 0 ? (
+            ) : notifications && notifications.length > 0 ? (
               <List
                 dataSource={notifications}
                 renderItem={(notification) => (

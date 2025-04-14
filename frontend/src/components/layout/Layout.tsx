@@ -250,8 +250,8 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
               type="text"
               icon={<MenuOutlined />}
               onClick={() => setMobileMenuOpen(true)}
-              style={{ color: '#fff', marginLeft: '0.5rem', display: 'none' }}
               className="md:hidden"
+              style={{ color: '#fff', marginLeft: '0.5rem' }}
             />
           </div>
         </div>
