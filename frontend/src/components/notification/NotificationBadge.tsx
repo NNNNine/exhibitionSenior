@@ -19,21 +19,27 @@ const NotificationBadge: React.FC<NotificationBadgeProps> = ({
   className = ''
 }) => {
   const router = useRouter();
-  const { notifications, unreadCount, markAsRead, markAllAsRead } = useNotifications();
+  const { notifications, unreadCount, markAsRead, markAllAsRead, loading } = useNotifications();
   const [open, setOpen] = useState(false);
   
+  // Error handling - provide fallback for notifications array
+  const safeNotifications = Array.isArray(notifications) ? notifications : [];
+  
   // Filter to get only the most recent notifications
-  const recentNotifications = notifications.slice(0, maxItems);
+  const recentNotifications = safeNotifications.slice(0, maxItems);
   
   // Handle notification click
   const handleNotificationClick = async (notification: any) => {
     // Mark as read
-    if (!notification.isRead) {
+    if (notification?.id && !notification.isRead) {
       await markAsRead(notification.id);
     }
     
     // Close the popover
     setOpen(false);
+    
+    // Only navigate if entityId exists
+    if (!notification?.entityId) return;
     
     // Navigate based on notification type
     switch (notification.type) {
@@ -94,7 +100,11 @@ const NotificationBadge: React.FC<NotificationBadgeProps> = ({
       </div>
       
       {/* Notifications list */}
-      {recentNotifications.length > 0 ? (
+      {loading ? (
+        <div className="flex justify-center py-4">
+          <span>Loading notifications...</span>
+        </div>
+      ) : recentNotifications.length > 0 ? (
         <List
           dataSource={recentNotifications}
           renderItem={notification => (

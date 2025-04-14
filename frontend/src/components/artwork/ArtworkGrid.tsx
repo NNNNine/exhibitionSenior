@@ -76,12 +76,12 @@ const ArtworkGrid: React.FC<ArtworkGridProps> = ({
                 alt={artwork.title}
                 src={formatImageUrl(artwork.thumbnailUrl || artwork.fileUrl)}
                 style={{ objectFit: 'cover' }}
-                width={300}
-                height={300}
+                width={'100%'}
+                height={'100%'}
               />
             </div>
           }
-          className="h-full flex flex-col"
+          style={{ height: '100%', display: 'flex', flexDirection: 'column'}}
         >
           <Meta
             title={artwork.title}

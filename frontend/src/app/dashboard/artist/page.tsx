@@ -15,7 +15,7 @@ import { Artwork } from '@/types/artwork.types';
 
 const ArtistDashboard: React.FC = () => {
   const router = useRouter();
-  const { notifications, unreadCount } = useNotifications();
+  const { notifications = [], unreadCount = 0 } = useNotifications();
   const [artworks, setArtworks] = useState<Artwork[]>([]);
   const [pendingArtworks, setPendingArtworks] = useState<Artwork[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -115,10 +115,10 @@ const ArtistDashboard: React.FC = () => {
     };
   }, [router]);
   
-  // Find approval notifications
-  const approvalNotifications = notifications.filter(
-    n => n.type === 'artwork_approved'
-  );
+  // Find approval notifications - now with proper error handling
+  const approvalNotifications = Array.isArray(notifications) 
+    ? notifications.filter(n => n.type === 'artwork_approved')
+    : [];
 
   return (
     <div className="p-6 max-w-7xl mx-auto">
@@ -306,4 +306,4 @@ const ArtistDashboard: React.FC = () => {
 export default withProtectedRoute(ArtistDashboard, {
   requiredRoles: [UserRole.ARTIST, UserRole.CURATOR],
   redirectTo: '/unauthorized',
-})
+});
