@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Button, Carousel, Card, Typography, Row, Col, Spin, List, Avatar } from 'antd';
+import { Button, Card, Typography, Row, Col, Spin } from 'antd';
 import { useRouter } from 'next/navigation';
 import { 
   EnvironmentOutlined, 
@@ -66,10 +66,10 @@ export default function Home() {
               <Button 
                 type="primary" 
                 size="large"
-                onClick={() => router.push('/exhibitions')}
+                onClick={() => router.push('/metaverse/view')}
                 className="h-12 px-8 text-lg"
               >
-                Browse Exhibitions
+                Join Exhibition
               </Button>
               <Button 
                 size="large"
@@ -189,7 +189,7 @@ export default function Home() {
         <div className="container mx-auto px-6 text-center">
           <Title level={2} style={{ color: 'white' }}>Ready to Join Our Art Community?</Title>
           <Paragraph style={{color: 'white'}} className="text-lg mb-8 max-w-2xl mx-auto">
-            Whether you're an artist looking to showcase your work, a curator creating immersive exhibitions,
+            Whether you&apos;re an artist looking to showcase your work, a curator creating immersive exhibitions,
             or an art enthusiast exploring new creations, we have a place for you.
           </Paragraph>
           <div className="flex flex-wrap justify-center gap-4">

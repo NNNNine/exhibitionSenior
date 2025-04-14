@@ -35,6 +35,24 @@ const isAuthPage = (path: string): boolean => {
 export async function middleware(request: NextRequest) {
   // Get the current path
   const path = request.nextUrl.pathname;
+
+  const isBrotliAsset = path.match(/\.(js|wasm|data|framework)\.br$/);
+  if (isBrotliAsset) {
+    const res = NextResponse.next();
+    res.headers.set('Content-Encoding', 'br');
+
+    if (path.endsWith('.js.br')) {
+      res.headers.set('Content-Type', 'application/javascript');
+    } else if (path.endsWith('.wasm.br')) {
+      res.headers.set('Content-Type', 'application/wasm');
+    } else if (path.endsWith('.data.br')) {
+      res.headers.set('Content-Type', 'application/octet-stream');
+    } else if (path.endsWith('.framework.br')) {
+      res.headers.set('Content-Type', 'application/javascript');
+    }
+
+    return res;
+  }
   
   // Skip middleware for auth pages
   if (isAuthPage(path)) {
@@ -104,5 +122,6 @@ export const config = {
     '/artworks/edit/:path*',
     '/exhibitions/create/:path*',
     '/exhibitions/edit/:path*',
+    '/unity/Build/:path*',
   ],
 };

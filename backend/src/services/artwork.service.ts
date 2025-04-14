@@ -358,3 +358,27 @@ export const rejectArtwork = async (id: string, user: User, io?: any) => {
     throw error;
   }
 };
+
+export const getArtworkInfoById = async (id: string) => {
+  try {
+    const artworkRepository = AppDataSource.getRepository(Artwork);
+    const artwork = await artworkRepository.findOne({
+      where: { id },
+      relations: ['artist']
+    });
+    
+    if (!artwork) {
+      throw new Error('Artwork not found');
+    }
+    
+    return {
+      id: artwork.id,
+      title: artwork.title,
+      artist: artwork.artist.username,
+      description: artwork.description,
+    };
+  } catch (error) {
+    logger.error('Get artwork info by ID error:', error);
+    throw error;
+  }
+}

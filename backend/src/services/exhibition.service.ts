@@ -391,7 +391,7 @@ export const getWallsWithImages = async (exhibitionId: string) => {
     });
 
     const wallResults = walls.map(wall => {
-      const images: Record<'left' | 'center' | 'right', string | null> = {
+      const images: Record<'left' | 'center' | 'right', { fileUrl: string | null; artId: string | null } | null> = {
         left: null,
         center: null,
         right: null
@@ -403,7 +403,10 @@ export const getWallsWithImages = async (exhibitionId: string) => {
           placement.position === PlacementPosition.CENTER ||
           placement.position === PlacementPosition.RIGHT
         ) {
-          images[placement.position] = placement.artwork?.fileUrl || null;
+          images[placement.position] = {
+            fileUrl: placement.artwork?.fileUrl || null,
+            artId: placement.artwork?.id || null
+          };
         }
       });
 

@@ -13,6 +13,8 @@ const artworkController = new ArtworkController();
 router.get('/', artworkController.getAllArtworks);
 router.get('/:id', artworkController.getArtworkById);
 
+router.get('/info/:id', artworkController.getArtworkInfoById);
+
 // Protected routes - Artist only
 router.post('/', ...withAuth([UserRole.ARTIST]), upload.single('image'),
   validate([

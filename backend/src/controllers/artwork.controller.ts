@@ -49,6 +49,18 @@ export class ArtworkController {
   }
 
   /**
+   * Get artworks info to show in Unity by Artwork ID
+   * @route GET /api/artworks/info/:id
+   */
+  async getArtworkInfoById(req: Request, res: Response): Promise<void> {
+    try {
+      const artworkInfo = await ArtworkService.getArtworkInfoById(req.params.id);
+      res.status(200).json(artworkInfo);
+    } catch (error: any) {
+      handleErrorController(error, req, res, 'Error while getting artwork info by ID');
+    }
+  }
+  /**
    * Create new artwork
    * @route POST /api/artworks
    */

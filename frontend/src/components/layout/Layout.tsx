@@ -119,7 +119,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     },
     {
       key: 'exhibition',
-      label: <Link href="/exhibitions">Exhibition</Link>,
+      label: <Link href="/metaverse/view">Exhibition</Link>,
       icon: <EnvironmentOutlined />,
     },
   ], [activeExhibition]);
@@ -306,7 +306,13 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
       </Content>
 
       {/* Footer */}
-      <Footer className="text-center bg-gray-900 text-white py-8">
+      <Footer style={{
+        textAlign: 'center',
+        backgroundColor: '#111827',
+        color: 'white',
+        paddingTop: '2rem',
+        paddingBottom: '2rem'
+      }}>
         <div className="max-w-6xl mx-auto">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6 text-left">
             <div>
@@ -319,22 +325,32 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
               <h3 className="text-zinc-300 text-lg font-bold mb-3">Quick Links</h3>
               <ul className="space-y-2">
                 <li>
-                  <Link href="/exhibitions" className="text-gray-400 hover:text-white">
-                    Exhibitions
+                  <Link 
+                    href="/metaverse/view" 
+                    style={{ color: '#9CA3AF', textDecoration: 'none' }} 
+                    onMouseOver={(e) => e.currentTarget.style.color = 'white'}
+                    onMouseOut={(e) => e.currentTarget.style.color = 'gray'}
+                  >
+                    Exhibition
                   </Link>
                 </li>
                 <li>
-                  <Link href="/artworks" className="text-gray-400 hover:text-white">
+                  <Link 
+                    href="/artworks" 
+                    style={{ color: '#9CA3AF', textDecoration: 'none' }} 
+                    onMouseOver={(e) => e.currentTarget.style.color = 'white'}
+                    onMouseOut={(e) => e.currentTarget.style.color = 'gray'}
+                  >
                     Artworks
                   </Link>
                 </li>
                 <li>
-                  <Link href="/metaverse/view" className="text-gray-400 hover:text-white">
-                    3D Exhibition
-                  </Link>
-                </li>
-                <li>
-                  <Link href="/auth/register?role=artist" className="text-gray-400 hover:text-white">
+                  <Link 
+                    href="/auth/register?role=artist" 
+                    style={{ color: '#9CA3AF', textDecoration: 'none' }} 
+                    onMouseOver={(e) => e.currentTarget.style.color = 'white'}
+                    onMouseOut={(e) => e.currentTarget.style.color = 'gray'}
+                  >
                     Join as Artist
                   </Link>
                 </li>
@@ -345,7 +361,12 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
               <p className="text-gray-400">
                 Have questions? Feel free to reach out to us.
               </p>
-              <Link href="mailto:contact@exhibitionartonline.com" className="text-gray-400 hover:text-white">
+              <Link 
+                href="mailto:contact@exhibitionartonline.com" 
+                style={{ color: '#9CA3AF', textDecoration: 'none' }} 
+                onMouseOver={(e) => e.currentTarget.style.color = 'white'}
+                onMouseOut={(e) => e.currentTarget.style.color = 'gray'}
+              >
                 contact@exhibitionartonline.com
               </Link>
             </div>

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Badge, Dropdown, List, Avatar, Button, Empty, Typography, Spin, Space, Tooltip } from 'antd';
+import { Badge, Dropdown, List, Avatar, Button, Empty, Typography, Spin, Tooltip } from 'antd';
 import { 
   BellOutlined, 
   CheckOutlined, 
@@ -11,6 +11,7 @@ import {
 import { useRouter } from 'next/navigation';
 import { formatRelativeTime } from '@/utils/format';
 import { useNotifications } from '@/contexts/NotificationContext';
+import { Notification } from '@/types/notification.types';
 
 const { Text } = Typography;
 
@@ -20,7 +21,7 @@ const NotificationDropdown: React.FC = () => {
   const [open, setOpen] = useState(false);
 
   // Handle notification click
-  const handleNotificationClick = async (notification: any) => {
+  const handleNotificationClick = async (notification: Notification) => {
     // Mark as read
     if (!notification.isRead) {
       await markAsRead(notification.id);
@@ -90,16 +91,16 @@ const NotificationDropdown: React.FC = () => {
                 dataSource={notifications}
                 renderItem={(notification) => (
                     <List.Item
-                    key={notification.id}
-                    onClick={() => handleNotificationClick(notification)}
-                    style={{
-                      padding: '12px 16px',
-                      cursor: 'pointer',
-                      backgroundColor: !notification.isRead ? '#e6f7ff' : 'transparent',
-                      transition: 'background-color 0.2s',
-                    }}
-                    onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#f5f5f5')}
-                    onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = !notification.isRead ? '#e6f7ff' : 'transparent')}
+                      key={notification.id}
+                      onClick={() => handleNotificationClick(notification)}
+                      style={{
+                        padding: '12px 16px',
+                        cursor: 'pointer',
+                        backgroundColor: !notification.isRead ? '#e6f7ff' : 'transparent',
+                        transition: 'background-color 0.2s',
+                      }}
+                      onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#f5f5f5')}
+                      onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = !notification.isRead ? '#e6f7ff' : 'transparent')}
                     >
                     <List.Item.Meta
                       avatar={
