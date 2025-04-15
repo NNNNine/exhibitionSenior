@@ -16,6 +16,7 @@ export class ArtworkController {
         artist, 
         tags,
         search,
+        status,
         page = 1,
         limit = 10
       } = req.query;
@@ -25,6 +26,7 @@ export class ArtworkController {
         artist as string | undefined,
         tags as string | undefined,
         search as string | undefined,
+        status as string | undefined,
         Number(page),
         Number(limit)
       );

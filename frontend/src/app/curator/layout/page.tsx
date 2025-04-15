@@ -414,7 +414,7 @@ const CuratorLayoutEditor: React.FC = () => {
               <Title level={2}>Exhibition Layout Editor</Title>
               
               <Space>
-                <Tooltip title="Save layout to 3D exhibition">
+                {/* <Tooltip title="Save layout to 3D exhibition">
                   <Button 
                     type="primary" 
                     icon={<SaveOutlined />}
@@ -424,7 +424,7 @@ const CuratorLayoutEditor: React.FC = () => {
                   >
                     Save Exhibition Layout
                   </Button>
-                </Tooltip>
+                </Tooltip> */}
               </Space>
             </div>
             

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Form, Input, Button, Upload, Select, DatePicker, message, Alert, Image } from 'antd';
+import { Form, Input, Button, Upload, Select, DatePicker, Alert, Image } from 'antd';
 import { InboxOutlined } from '@ant-design/icons';
 import moment from 'moment';
 import { useAuthContext } from '@/contexts/AuthContext';
@@ -25,6 +25,7 @@ const ArtworkUploadForm: React.FC<ArtworkUploadFormProps> = ({
   const [fileList, setFileList] = useState<any[]>([]);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   // Validate file
   const beforeUpload = (file: File) => {
@@ -104,7 +105,7 @@ const ArtworkUploadForm: React.FC<ArtworkUploadFormProps> = ({
       setPreviewImage(null);
       
       // Show success message
-      message.success('Artwork uploaded successfully!');
+      setSuccessMessage('Artwork uploaded successfully!');
     } catch (error) {
       console.error('Upload error:', error);
     }

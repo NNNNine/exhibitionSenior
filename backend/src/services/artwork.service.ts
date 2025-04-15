@@ -16,6 +16,7 @@ export const getAllArtworks = async (
   artist?: string,
   tags?: string,
   search?: string,
+  status?: string,
   page: number = 1,
   limit: number = 10
 ) => {
@@ -26,6 +27,10 @@ export const getAllArtworks = async (
       .createQueryBuilder('artwork')
       .leftJoinAndSelect('artwork.artist', 'artist')
       .orderBy('artwork.creationDate', 'DESC');
+
+    if (status) {
+      query = query.andWhere('artwork.status = :status', { status });
+    }
     
     if (category) {
       query = query.andWhere('artwork.category = :category', { category });
@@ -112,6 +117,8 @@ export const createArtwork = async (
     
     // Process the uploaded artwork image
     const { originalPath, thumbnailPath } = await processArtworkImage(file);
+    const relativeOriginPath = path.relative(path.join(__dirname, '../../../'), originalPath);
+    const relativeThumbnailPath = path.relative(path.join(__dirname, '../../../'), thumbnailPath);
     
     // Create new artwork record
     const artworkRepository = AppDataSource.getRepository(Artwork);
@@ -121,8 +128,8 @@ export const createArtwork = async (
     artwork.description = description;
     artwork.artist = artist;
     artwork.artistId = artist.id;
-    artwork.fileUrl = originalPath.replace(path.join(__dirname, '../../../'), '/');
-    artwork.thumbnailUrl = thumbnailPath.replace(path.join(__dirname, '../../../'), '/');
+    artwork.fileUrl = '/' + relativeOriginPath.replace(/^backend[\/\\]?/, '');
+    artwork.thumbnailUrl = '/' + relativeThumbnailPath.replace(/^backend[\/\\]?/, '');
     artwork.category = category;
     artwork.tags = tagsString ? JSON.parse(tagsString) : [];
     artwork.creationDate = new Date(creationDate || Date.now());

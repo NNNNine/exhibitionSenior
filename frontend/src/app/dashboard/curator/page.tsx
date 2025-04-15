@@ -28,7 +28,7 @@ import CuratorNavLinks from '@/components/curator/CuratorNavLink';
 
 const CuratorDashboard: React.FC = () => {
   const router = useRouter();
-  const { notifications, unreadCount, markAsRead } = useNotifications();
+  const { notifications = [], unreadCount = 0, markAsRead } = useNotifications();
   const [rejectionModalVisible, setRejectionModalVisible] = useState<boolean>(false);
   const [rejectReason, setRejectReason] = useState<string>('');
   const [selectedArtwork, setSelectedArtwork] = useState<Artwork | null>(null);
@@ -167,9 +167,9 @@ const CuratorDashboard: React.FC = () => {
     };
   
   // Filter notifications to show only artwork upload notifications
-  const artworkUploadNotifications = notifications.filter(
-    notification => notification.type === 'artwork_upload'
-  );
+  const artworkUploadNotifications = Array.isArray(notifications) 
+  ? notifications.filter(n => n.type === 'artwork_upload')
+  : [];
 
   // Handle notification click
   const handleNotificationClick = async (notification: any) => {
